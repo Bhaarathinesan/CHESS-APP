@@ -16,10 +16,7 @@ describe('AppController (e2e)', () => {
   });
 
   it('/ (GET)', () => {
-    return request(app.getHttpServer())
-      .get('/')
-      .expect(200)
-      .expect('ChessArena API is running!');
+    return request(app.getHttpServer()).get('/').expect(200).expect('ChessArena API is running!');
   });
 
   it('/health (GET)', () => {

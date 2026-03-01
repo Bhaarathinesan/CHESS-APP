@@ -32,10 +32,14 @@
     "docker:ps": "docker-compose ps"
   },
   "devDependencies": {
-    "concurrently": "^8.2.2"
+    "concurrently": "^8.2.2",
+    "fast-check": "^4.5.3"
   },
   "engines": {
     "node": ">=18.0.0",
     "npm": ">=9.0.0"
+  },
+  "dependencies": {
+    "nanoid": "^5.1.6"
   }
 }

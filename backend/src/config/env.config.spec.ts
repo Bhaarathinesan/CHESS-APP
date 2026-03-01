@@ -141,9 +141,7 @@ describe('Environment Configuration', () => {
 
       expect(config.GOOGLE_CLIENT_ID).toBe('test-client-id');
       expect(config.GOOGLE_CLIENT_SECRET).toBe('test-client-secret');
-      expect(config.GOOGLE_CALLBACK_URL).toBe(
-        'http://localhost:3001/auth/google/callback',
-      );
+      expect(config.GOOGLE_CALLBACK_URL).toBe('http://localhost:3001/auth/google/callback');
     });
 
     it('should validate email format for FROM_EMAIL', () => {

@@ -10,9 +10,7 @@ const envSchema = z.object({
   REDIS_URL: z.string().url('REDIS_URL must be a valid URL'),
 
   // Authentication
-  JWT_SECRET: z
-    .string()
-    .min(32, 'JWT_SECRET must be at least 32 characters for security'),
+  JWT_SECRET: z.string().min(32, 'JWT_SECRET must be at least 32 characters for security'),
   JWT_EXPIRATION: z.string().default('24h'),
   REFRESH_TOKEN_EXPIRATION: z.string().default('30d'),
 
@@ -31,9 +29,7 @@ const envSchema = z.object({
   CLOUDINARY_API_SECRET: z.string().optional(),
 
   // Application Configuration
-  NODE_ENV: z
-    .enum(['development', 'staging', 'production', 'test'])
-    .default('development'),
+  NODE_ENV: z.enum(['development', 'staging', 'production', 'test']).default('development'),
   PORT: z
     .string()
     .default('3001')
@@ -65,10 +61,7 @@ const envSchema = z.object({
   WS_PATH: z.string().default('/socket.io'),
 
   // Logging
-  LOG_LEVEL: z
-    .enum(['error', 'warn', 'info', 'debug'])
-    .default('info')
-    .optional(),
+  LOG_LEVEL: z.enum(['error', 'warn', 'info', 'debug']).default('info').optional(),
 
   // Approved College Domains
   APPROVED_DOMAINS: z
@@ -108,9 +101,7 @@ export function validateEnv(): EnvConfig {
         .map((err) => `${err.path.join('.')}: ${err.message}`)
         .join('\n');
 
-      throw new Error(
-        `Environment variable validation failed:\n${errorMessages}`,
-      );
+      throw new Error(`Environment variable validation failed:\n${errorMessages}`);
     }
     throw error;
   }

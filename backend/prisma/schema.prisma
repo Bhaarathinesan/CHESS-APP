@@ -1,8 +1,5 @@
-// This is your Prisma schema file for ChessArena Platform
-// learn more about it in the docs: https://pris.ly/d/prisma-schema
-
 generator client {
-  provider = "prisma-client-js"
+  provider        = "prisma-client-js"
   previewFeatures = ["partialIndexes"]
 }
 
@@ -10,62 +7,58 @@ datasource db {
   provider = "postgresql"
 }
 
-// ============================================================================
-// User Management
-// ============================================================================
-
 model User {
-  id                       String    @id @default(uuid()) @db.Uuid
-  email                    String    @unique @db.VarChar(255)
-  username                 String    @unique @db.VarChar(50)
-  passwordHash             String?   @map("password_hash") @db.VarChar(255)
-  displayName              String    @map("display_name") @db.VarChar(100)
-  avatarUrl                String?   @map("avatar_url") @db.Text
-  bio                      String?   @db.Text
-  country                  String?   @db.VarChar(100)
-  city                     String?   @db.VarChar(100)
-  collegeName              String    @map("college_name") @db.VarChar(255)
-  collegeDomain            String    @map("college_domain") @db.VarChar(255)
-  role                     UserRole  @default(PLAYER)
-  emailVerified            Boolean   @default(false) @map("email_verified")
-  emailVerificationToken   String?   @map("email_verification_token") @db.Text
-  passwordResetToken       String?   @map("password_reset_token") @db.Text
-  passwordResetExpires     DateTime? @map("password_reset_expires") @db.Timestamp(6)
-  twoFactorEnabled         Boolean   @default(false) @map("two_factor_enabled")
-  twoFactorSecret          String?   @map("two_factor_secret") @db.VarChar(255)
-  oauthProvider            String?   @map("oauth_provider") @db.VarChar(50)
-  oauthId                  String?   @map("oauth_id") @db.VarChar(255)
-  themePreference          String    @default("dark") @map("theme_preference") @db.VarChar(20)
-  boardTheme               String    @default("default") @map("board_theme") @db.VarChar(50)
-  pieceSet                 String    @default("default") @map("piece_set") @db.VarChar(50)
-  soundEnabled             Boolean   @default(true) @map("sound_enabled")
-  soundVolume              Int       @default(70) @map("sound_volume")
-  notificationPreferences  Json      @default("{}") @map("notification_preferences") @db.JsonB
-  isOnline                 Boolean   @default(false) @map("is_online")
-  lastOnline               DateTime? @map("last_online") @db.Timestamp(6)
-  isBanned                 Boolean   @default(false) @map("is_banned")
-  banReason                String?   @map("ban_reason") @db.Text
-  banExpires               DateTime? @map("ban_expires") @db.Timestamp(6)
-  createdAt                DateTime  @default(now()) @map("created_at") @db.Timestamp(6)
-  updatedAt                DateTime  @default(now()) @updatedAt @map("updated_at") @db.Timestamp(6)
-
-  // Relations
-  ratings                  Rating[]
-  ratingHistory            RatingHistory[]
-  gamesAsWhite             Game[]              @relation("WhitePlayer")
+  id                       String              @id @default(uuid()) @db.Uuid
+  email                    String              @unique @db.VarChar(255)
+  username                 String              @unique @db.VarChar(50)
+  passwordHash             String?             @map("password_hash") @db.VarChar(255)
+  displayName              String              @map("display_name") @db.VarChar(100)
+  avatarUrl                String?             @map("avatar_url")
+  bio                      String?
+  country                  String?             @db.VarChar(100)
+  city                     String?             @db.VarChar(100)
+  collegeName              String              @map("college_name") @db.VarChar(255)
+  collegeDomain            String              @map("college_domain") @db.VarChar(255)
+  role                     UserRole            @default(PLAYER)
+  emailVerified            Boolean             @default(false) @map("email_verified")
+  emailVerificationToken   String?             @map("email_verification_token")
+  passwordResetToken       String?             @map("password_reset_token")
+  passwordResetExpires     DateTime?           @map("password_reset_expires") @db.Timestamp(6)
+  twoFactorEnabled         Boolean             @default(false) @map("two_factor_enabled")
+  twoFactorSecret          String?             @map("two_factor_secret") @db.VarChar(255)
+  oauthProvider            String?             @map("oauth_provider") @db.VarChar(50)
+  oauthId                  String?             @map("oauth_id") @db.VarChar(255)
+  themePreference          String              @default("dark") @map("theme_preference") @db.VarChar(20)
+  boardTheme               String              @default("default") @map("board_theme") @db.VarChar(50)
+  pieceSet                 String              @default("default") @map("piece_set") @db.VarChar(50)
+  soundEnabled             Boolean             @default(true) @map("sound_enabled")
+  soundVolume              Int                 @default(70) @map("sound_volume")
+  notificationPreferences  Json                @default("{}") @map("notification_preferences")
+  chatEnabled              Boolean             @default(true) @map("chat_enabled")
+  chatDisabledGames        String[]            @default([]) @map("chat_disabled_games")
+  isOnline                 Boolean             @default(false) @map("is_online")
+  lastOnline               DateTime?           @map("last_online") @db.Timestamp(6)
+  isBanned                 Boolean             @default(false) @map("is_banned")
+  banReason                String?             @map("ban_reason")
+  banExpires               DateTime?           @map("ban_expires") @db.Timestamp(6)
+  createdAt                DateTime            @default(now()) @map("created_at") @db.Timestamp(6)
+  updatedAt                DateTime            @default(now()) @updatedAt @map("updated_at") @db.Timestamp(6)
+  chatMessages             ChatMessage[]
+  following                Follow[]            @relation("Follower")
+  followers                Follow[]            @relation("Following")
   gamesAsBlack             Game[]              @relation("BlackPlayer")
+  gamesAsWhite             Game[]              @relation("WhitePlayer")
+  notifications            Notification[]
+  ratingHistory            RatingHistory[]
+  ratings                  Rating[]
+  reportsReceived          Report[]            @relation("ReportedUser")
+  reportsSubmitted         Report[]            @relation("Reporter")
+  reportsReviewed          Report[]            @relation("Reviewer")
+  pairingsAsBlack          TournamentPairing[] @relation("BlackPlayerPairing")
+  pairingsAsWhite          TournamentPairing[] @relation("WhitePlayerPairing")
   tournamentParticipations TournamentPlayer[]
   tournamentsCreated       Tournament[]
   achievements             UserAchievement[]
-  notifications            Notification[]
-  following                Follow[]            @relation("Follower")
-  followers                Follow[]            @relation("Following")
-  reportsSubmitted         Report[]            @relation("Reporter")
-  reportsReceived          Report[]            @relation("ReportedUser")
-  chatMessages             ChatMessage[]
-  pairingsAsWhite          TournamentPairing[] @relation("WhitePlayerPairing")
-  pairingsAsBlack          TournamentPairing[] @relation("BlackPlayerPairing")
-  reportsReviewed          Report[]            @relation("Reviewer")
 
   @@index([email])
   @@index([username])
@@ -75,35 +68,20 @@ model User {
   @@map("users")
 }
 
-enum UserRole {
-  SUPER_ADMIN     @map("super_admin")
-  TOURNAMENT_ADMIN @map("tournament_admin")
-  PLAYER          @map("player")
-  SPECTATOR       @map("spectator")
-
-  @@map("user_role")
-}
-
-// ============================================================================
-// Rating System
-// ============================================================================
-
 model Rating {
-  id             String       @id @default(uuid()) @db.Uuid
-  userId         String       @map("user_id") @db.Uuid
-  timeControl    TimeControl  @map("time_control")
-  rating         Int          @default(1200)
-  peakRating     Int          @default(1200) @map("peak_rating")
-  gamesPlayed    Int          @default(0) @map("games_played")
-  wins           Int          @default(0)
-  losses         Int          @default(0)
-  draws          Int          @default(0)
-  isProvisional  Boolean      @default(true) @map("is_provisional")
-  kFactor        Int          @default(40) @map("k_factor")
-  updatedAt      DateTime     @default(now()) @updatedAt @map("updated_at") @db.Timestamp(6)
-
-  // Relations
-  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  id            String      @id @default(uuid()) @db.Uuid
+  userId        String      @map("user_id") @db.Uuid
+  timeControl   TimeControl @map("time_control")
+  rating        Int         @default(1200)
+  peakRating    Int         @default(1200) @map("peak_rating")
+  gamesPlayed   Int         @default(0) @map("games_played")
+  wins          Int         @default(0)
+  losses        Int         @default(0)
+  draws         Int         @default(0)
+  isProvisional Boolean     @default(true) @map("is_provisional")
+  kFactor       Int         @default(40) @map("k_factor")
+  updatedAt     DateTime    @default(now()) @updatedAt @map("updated_at") @db.Timestamp(6)
+  user          User        @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@unique([userId, timeControl])
   @@index([userId])
@@ -113,73 +91,56 @@ model Rating {
 }
 
 model RatingHistory {
-  id            String      @id @default(uuid()) @db.Uuid
-  userId        String      @map("user_id") @db.Uuid
-  timeControl   TimeControl @map("time_control")
-  ratingBefore  Int         @map("rating_before")
-  ratingAfter   Int         @map("rating_after")
-  ratingChange  Int         @map("rating_change")
-  gameId        String?     @map("game_id") @db.Uuid
-  createdAt     DateTime    @default(now()) @map("created_at") @db.Timestamp(6)
-
-  // Relations
-  user User  @relation(fields: [userId], references: [id], onDelete: Cascade)
-  game Game? @relation(fields: [gameId], references: [id], onDelete: SetNull)
+  id           String      @id @default(uuid()) @db.Uuid
+  userId       String      @map("user_id") @db.Uuid
+  timeControl  TimeControl @map("time_control")
+  ratingBefore Int         @map("rating_before")
+  ratingAfter  Int         @map("rating_after")
+  ratingChange Int         @map("rating_change")
+  gameId       String?     @map("game_id") @db.Uuid
+  createdAt    DateTime    @default(now()) @map("created_at") @db.Timestamp(6)
+  game         Game?       @relation(fields: [gameId], references: [id])
+  user         User        @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@index([userId, createdAt(sort: Desc)])
   @@index([gameId])
   @@map("rating_history")
 }
 
-enum TimeControl {
-  BULLET    @map("bullet")
-  BLITZ     @map("blitz")
-  RAPID     @map("rapid")
-  CLASSICAL @map("classical")
-
-  @@map("time_control")
-}
-
-// ============================================================================
-// Games
-// ============================================================================
-
 model Game {
-  id                   String              @id @default(uuid()) @db.Uuid
-  whitePlayerId        String              @map("white_player_id") @db.Uuid
-  blackPlayerId        String              @map("black_player_id") @db.Uuid
-  tournamentId         String?             @map("tournament_id") @db.Uuid
-  timeControl          TimeControl         @map("time_control")
-  initialTimeMinutes   Int                 @map("initial_time_minutes")
-  incrementSeconds     Int                 @map("increment_seconds")
-  isRated              Boolean             @default(true) @map("is_rated")
-  status               GameStatus          @default(PENDING)
-  result               GameResult?
-  terminationReason    String?             @map("termination_reason") @db.VarChar(50)
-  pgn                  String?             @db.Text
-  fenCurrent           String              @default("rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1") @map("fen_current") @db.VarChar(100)
-  moveCount            Int                 @default(0) @map("move_count")
-  whiteTimeRemaining   Int?                @map("white_time_remaining")
-  blackTimeRemaining   Int?                @map("black_time_remaining")
-  whiteRatingBefore    Int?                @map("white_rating_before")
-  blackRatingBefore    Int?                @map("black_rating_before")
-  whiteRatingAfter     Int?                @map("white_rating_after")
-  blackRatingAfter     Int?                @map("black_rating_after")
-  openingName          String?             @map("opening_name") @db.VarChar(255)
-  spectatorCount       Int                 @default(0) @map("spectator_count")
-  startedAt            DateTime?           @map("started_at") @db.Timestamp(6)
-  completedAt          DateTime?           @map("completed_at") @db.Timestamp(6)
-  createdAt            DateTime            @default(now()) @map("created_at") @db.Timestamp(6)
-  updatedAt            DateTime            @default(now()) @updatedAt @map("updated_at") @db.Timestamp(6)
-
-  // Relations
-  whitePlayer      User                @relation("WhitePlayer", fields: [whitePlayerId], references: [id], onDelete: Cascade)
-  blackPlayer      User                @relation("BlackPlayer", fields: [blackPlayerId], references: [id], onDelete: Cascade)
-  tournament       Tournament?         @relation(fields: [tournamentId], references: [id], onDelete: SetNull)
-  moves            GameMove[]
-  chatMessages     ChatMessage[]
-  ratingHistory    RatingHistory[]
-  tournamentPairing TournamentPairing?
+  id                 String             @id @default(uuid()) @db.Uuid
+  whitePlayerId      String             @map("white_player_id") @db.Uuid
+  blackPlayerId      String             @map("black_player_id") @db.Uuid
+  tournamentId       String?            @map("tournament_id") @db.Uuid
+  timeControl        TimeControl        @map("time_control")
+  initialTimeMinutes Int                @map("initial_time_minutes")
+  incrementSeconds   Int                @map("increment_seconds")
+  isRated            Boolean            @default(true) @map("is_rated")
+  status             GameStatus         @default(PENDING)
+  result             GameResult?
+  terminationReason  String?            @map("termination_reason") @db.VarChar(50)
+  pgn                String?
+  fenCurrent         String             @default("rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1") @map("fen_current") @db.VarChar(100)
+  moveCount          Int                @default(0) @map("move_count")
+  whiteTimeRemaining Int?               @map("white_time_remaining")
+  blackTimeRemaining Int?               @map("black_time_remaining")
+  whiteRatingBefore  Int?               @map("white_rating_before")
+  blackRatingBefore  Int?               @map("black_rating_before")
+  whiteRatingAfter   Int?               @map("white_rating_after")
+  blackRatingAfter   Int?               @map("black_rating_after")
+  openingName        String?            @map("opening_name") @db.VarChar(255)
+  spectatorCount     Int                @default(0) @map("spectator_count")
+  startedAt          DateTime?          @map("started_at") @db.Timestamp(6)
+  completedAt        DateTime?          @map("completed_at") @db.Timestamp(6)
+  createdAt          DateTime           @default(now()) @map("created_at") @db.Timestamp(6)
+  updatedAt          DateTime           @default(now()) @updatedAt @map("updated_at") @db.Timestamp(6)
+  chatMessages       ChatMessage[]
+  moves              GameMove[]
+  blackPlayer        User               @relation("BlackPlayer", fields: [blackPlayerId], references: [id], onDelete: Cascade)
+  tournament         Tournament?        @relation(fields: [tournamentId], references: [id])
+  whitePlayer        User               @relation("WhitePlayer", fields: [whitePlayerId], references: [id], onDelete: Cascade)
+  ratingHistory      RatingHistory[]
+  tournamentPairing  TournamentPairing?
 
   @@index([whitePlayerId, createdAt(sort: Desc)])
   @@index([blackPlayerId, createdAt(sort: Desc)])
@@ -191,30 +152,251 @@ model Game {
 }
 
 model GameMove {
-  id               String   @id @default(uuid()) @db.Uuid
-  gameId           String   @map("game_id") @db.Uuid
-  moveNumber       Int      @map("move_number")
-  color            String   @db.VarChar(5)
-  san              String   @db.VarChar(10)
-  uci              String   @db.VarChar(10)
-  fenAfter         String   @map("fen_after") @db.VarChar(100)
-  timeTakenMs      Int      @map("time_taken_ms")
-  timeRemainingMs  Int      @map("time_remaining_ms")
-  isCheck          Boolean  @default(false) @map("is_check")
-  isCheckmate      Boolean  @default(false) @map("is_checkmate")
-  isCapture        Boolean  @default(false) @map("is_capture")
-  isCastling       Boolean  @default(false) @map("is_castling")
-  isEnPassant      Boolean  @default(false) @map("is_en_passant")
-  isPromotion      Boolean  @default(false) @map("is_promotion")
-  promotionPiece   String?  @map("promotion_piece") @db.VarChar(10)
-  createdAt        DateTime @default(now()) @map("created_at") @db.Timestamp(6)
-
-  // Relations
-  game Game @relation(fields: [gameId], references: [id], onDelete: Cascade)
+  id              String   @id @default(uuid()) @db.Uuid
+  gameId          String   @map("game_id") @db.Uuid
+  moveNumber      Int      @map("move_number")
+  color           String   @db.VarChar(5)
+  san             String   @db.VarChar(10)
+  uci             String   @db.VarChar(10)
+  fenAfter        String   @map("fen_after") @db.VarChar(100)
+  timeTakenMs     Int      @map("time_taken_ms")
+  timeRemainingMs Int      @map("time_remaining_ms")
+  isCheck         Boolean  @default(false) @map("is_check")
+  isCheckmate     Boolean  @default(false) @map("is_checkmate")
+  isCapture       Boolean  @default(false) @map("is_capture")
+  isCastling      Boolean  @default(false) @map("is_castling")
+  isEnPassant     Boolean  @default(false) @map("is_en_passant")
+  isPromotion     Boolean  @default(false) @map("is_promotion")
+  promotionPiece  String?  @map("promotion_piece") @db.VarChar(10)
+  createdAt       DateTime @default(now()) @map("created_at") @db.Timestamp(6)
+  game            Game     @relation(fields: [gameId], references: [id], onDelete: Cascade)
 
   @@unique([gameId, moveNumber, color])
   @@index([gameId, moveNumber])
   @@map("game_moves")
+}
+
+model Tournament {
+  id                    String              @id @default(uuid()) @db.Uuid
+  name                  String              @db.VarChar(255)
+  description           String?
+  bannerUrl             String?             @map("banner_url")
+  creatorId             String              @map("creator_id") @db.Uuid
+  format                TournamentFormat
+  timeControl           TimeControl         @map("time_control")
+  initialTimeMinutes    Int                 @map("initial_time_minutes")
+  incrementSeconds      Int                 @map("increment_seconds")
+  isRated               Boolean             @default(true) @map("is_rated")
+  status                TournamentStatus    @default(CREATED)
+  minPlayers            Int                 @default(4) @map("min_players")
+  maxPlayers            Int                 @default(1000) @map("max_players")
+  currentPlayers        Int                 @default(0) @map("current_players")
+  roundsTotal           Int?                @map("rounds_total")
+  roundsCompleted       Int                 @default(0) @map("rounds_completed")
+  currentRound          Int                 @default(0) @map("current_round")
+  pairingMethod         String              @default("automatic") @map("pairing_method") @db.VarChar(20)
+  tiebreakCriteria      String              @default("buchholz") @map("tiebreak_criteria") @db.VarChar(50)
+  allowLateRegistration Boolean             @default(false) @map("allow_late_registration")
+  spectatorDelaySeconds Int                 @default(0) @map("spectator_delay_seconds")
+  registrationDeadline  DateTime            @map("registration_deadline") @db.Timestamp(6)
+  startTime             DateTime            @map("start_time") @db.Timestamp(6)
+  endTime               DateTime?           @map("end_time") @db.Timestamp(6)
+  shareLink             String?             @unique @map("share_link") @db.VarChar(255)
+  qrCodeUrl             String?             @map("qr_code_url")
+  prizeDescription      String?             @map("prize_description")
+  createdAt             DateTime            @default(now()) @map("created_at") @db.Timestamp(6)
+  updatedAt             DateTime            @default(now()) @updatedAt @map("updated_at") @db.Timestamp(6)
+  games                 Game[]
+  pairings              TournamentPairing[]
+  players               TournamentPlayer[]
+  creator               User                @relation(fields: [creatorId], references: [id], onDelete: Cascade)
+
+  @@index([creatorId])
+  @@index([status])
+  @@index([startTime])
+  @@index([shareLink])
+  @@map("tournaments")
+}
+
+model TournamentPlayer {
+  id             String     @id @default(uuid()) @db.Uuid
+  tournamentId   String     @map("tournament_id") @db.Uuid
+  userId         String     @map("user_id") @db.Uuid
+  score          Decimal    @default(0.0) @db.Decimal(4, 1)
+  wins           Int        @default(0)
+  losses         Int        @default(0)
+  draws          Int        @default(0)
+  buchholzScore  Decimal    @default(0.0) @map("buchholz_score") @db.Decimal(6, 2)
+  sonneborBerger Decimal    @default(0.0) @map("sonneborn_berger") @db.Decimal(6, 2)
+  rank           Int?
+  isActive       Boolean    @default(true) @map("is_active")
+  hasBye         Boolean    @default(false) @map("has_bye")
+  joinedAt       DateTime   @default(now()) @map("joined_at") @db.Timestamp(6)
+  tournament     Tournament @relation(fields: [tournamentId], references: [id], onDelete: Cascade)
+  user           User       @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([tournamentId, userId])
+  @@index([tournamentId, score(sort: Desc)])
+  @@index([userId])
+  @@map("tournament_players")
+}
+
+model TournamentPairing {
+  id            String         @id @default(uuid()) @db.Uuid
+  tournamentId  String         @map("tournament_id") @db.Uuid
+  roundNumber   Int            @map("round_number")
+  whitePlayerId String?        @map("white_player_id") @db.Uuid
+  blackPlayerId String?        @map("black_player_id") @db.Uuid
+  gameId        String?        @unique @map("game_id") @db.Uuid
+  result        PairingResult?
+  boardNumber   Int?           @map("board_number")
+  isBye         Boolean        @default(false) @map("is_bye")
+  createdAt     DateTime       @default(now()) @map("created_at") @db.Timestamp(6)
+  blackPlayer   User?          @relation("BlackPlayerPairing", fields: [blackPlayerId], references: [id], onDelete: Cascade)
+  game          Game?          @relation(fields: [gameId], references: [id])
+  tournament    Tournament     @relation(fields: [tournamentId], references: [id], onDelete: Cascade)
+  whitePlayer   User?          @relation("WhitePlayerPairing", fields: [whitePlayerId], references: [id], onDelete: Cascade)
+
+  @@index([tournamentId, roundNumber])
+  @@index([whitePlayerId, blackPlayerId])
+  @@index([gameId])
+  @@map("tournament_pairings")
+}
+
+model Achievement {
+  id               String            @id @default(uuid()) @db.Uuid
+  code             String            @unique @db.VarChar(50)
+  name             String            @db.VarChar(100)
+  description      String
+  iconUrl          String?           @map("icon_url")
+  category         String            @db.VarChar(30)
+  points           Int               @default(0)
+  isHidden         Boolean           @default(false) @map("is_hidden")
+  createdAt        DateTime          @default(now()) @map("created_at") @db.Timestamp(6)
+  userAchievements UserAchievement[]
+
+  @@index([code])
+  @@index([category])
+  @@map("achievements")
+}
+
+model UserAchievement {
+  id            String      @id @default(uuid()) @db.Uuid
+  userId        String      @map("user_id") @db.Uuid
+  achievementId String      @map("achievement_id") @db.Uuid
+  earnedAt      DateTime    @default(now()) @map("earned_at") @db.Timestamp(6)
+  achievement   Achievement @relation(fields: [achievementId], references: [id], onDelete: Cascade)
+  user          User        @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, achievementId])
+  @@index([userId, earnedAt(sort: Desc)])
+  @@index([achievementId])
+  @@map("user_achievements")
+}
+
+model Notification {
+  id        String    @id @default(uuid()) @db.Uuid
+  userId    String    @map("user_id") @db.Uuid
+  type      String    @db.VarChar(50)
+  title     String    @db.VarChar(255)
+  message   String
+  data      Json      @default("{}")
+  isRead    Boolean   @default(false) @map("is_read")
+  linkUrl   String?   @map("link_url")
+  createdAt DateTime  @default(now()) @map("created_at") @db.Timestamp(6)
+  readAt    DateTime? @map("read_at") @db.Timestamp(6)
+  user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, createdAt(sort: Desc)])
+  @@index([userId, isRead], where: raw("(is_read = false)"))
+  @@map("notifications")
+}
+
+model Follow {
+  id          String   @id @default(uuid()) @db.Uuid
+  followerId  String   @map("follower_id") @db.Uuid
+  followingId String   @map("following_id") @db.Uuid
+  createdAt   DateTime @default(now()) @map("created_at") @db.Timestamp(6)
+  follower    User     @relation("Follower", fields: [followerId], references: [id], onDelete: Cascade)
+  following   User     @relation("Following", fields: [followingId], references: [id], onDelete: Cascade)
+
+  @@unique([followerId, followingId])
+  @@index([followerId])
+  @@index([followingId])
+  @@map("follows")
+}
+
+model Report {
+  id             String       @id @default(uuid()) @db.Uuid
+  reporterId     String       @map("reporter_id") @db.Uuid
+  reportedUserId String?      @map("reported_user_id") @db.Uuid
+  gameId         String?      @map("game_id") @db.Uuid
+  reportType     String       @map("report_type") @db.VarChar(30)
+  description    String
+  status         ReportStatus @default(PENDING)
+  adminNotes     String?      @map("admin_notes")
+  reviewedBy     String?      @map("reviewed_by") @db.Uuid
+  reviewedAt     DateTime?    @map("reviewed_at") @db.Timestamp(6)
+  createdAt      DateTime     @default(now()) @map("created_at") @db.Timestamp(6)
+  reportedUser   User?        @relation("ReportedUser", fields: [reportedUserId], references: [id], onDelete: Cascade)
+  reporter       User         @relation("Reporter", fields: [reporterId], references: [id], onDelete: Cascade)
+  reviewer       User?        @relation("Reviewer", fields: [reviewedBy], references: [id])
+
+  @@index([reporterId])
+  @@index([reportedUserId])
+  @@index([status])
+  @@map("reports")
+}
+
+model ChatMessage {
+  id          String       @id @default(uuid()) @db.Uuid
+  gameId      String       @map("game_id") @db.Uuid
+  senderId    String       @map("sender_id") @db.Uuid
+  message     String
+  isSpectator Boolean      @default(false) @map("is_spectator")
+  createdAt   DateTime     @default(now()) @map("created_at") @db.Timestamp(6)
+  game        Game         @relation(fields: [gameId], references: [id], onDelete: Cascade)
+  sender      User         @relation(fields: [senderId], references: [id], onDelete: Cascade)
+  reports     ChatReport[]
+
+  @@index([gameId, createdAt])
+  @@index([senderId])
+  @@map("chat_messages")
+}
+
+model ChatReport {
+  id          String      @id @default(uuid()) @db.Uuid
+  messageId   String      @map("message_id") @db.Uuid
+  reporterId  String      @map("reporter_id") @db.Uuid
+  reason      String
+  status      String      @default("pending") @db.VarChar(20)
+  reviewedBy  String?     @map("reviewed_by") @db.Uuid
+  reviewedAt  DateTime?   @map("reviewed_at") @db.Timestamp(6)
+  createdAt   DateTime    @default(now()) @map("created_at") @db.Timestamp(6)
+  message     ChatMessage @relation(fields: [messageId], references: [id], onDelete: Cascade)
+
+  @@index([messageId])
+  @@index([reporterId])
+  @@index([status])
+  @@map("chat_reports")
+}
+
+enum UserRole {
+  SUPER_ADMIN      @map("super_admin")
+  TOURNAMENT_ADMIN @map("tournament_admin")
+  PLAYER           @map("player")
+  SPECTATOR        @map("spectator")
+
+  @@map("user_role")
+}
+
+enum TimeControl {
+  BULLET    @map("bullet")
+  BLITZ     @map("blitz")
+  RAPID     @map("rapid")
+  CLASSICAL @map("classical")
+
+  @@map("time_control")
 }
 
 enum GameStatus {
@@ -234,103 +416,6 @@ enum GameResult {
   @@map("game_result")
 }
 
-// ============================================================================
-// Tournaments
-// ============================================================================
-
-model Tournament {
-  id                      String              @id @default(uuid()) @db.Uuid
-  name                    String              @db.VarChar(255)
-  description             String?             @db.Text
-  bannerUrl               String?             @map("banner_url") @db.Text
-  creatorId               String              @map("creator_id") @db.Uuid
-  format                  TournamentFormat
-  timeControl             TimeControl         @map("time_control")
-  initialTimeMinutes      Int                 @map("initial_time_minutes")
-  incrementSeconds        Int                 @map("increment_seconds")
-  isRated                 Boolean             @default(true) @map("is_rated")
-  status                  TournamentStatus    @default(CREATED)
-  minPlayers              Int                 @default(4) @map("min_players")
-  maxPlayers              Int                 @default(1000) @map("max_players")
-  currentPlayers          Int                 @default(0) @map("current_players")
-  roundsTotal             Int?                @map("rounds_total")
-  roundsCompleted         Int                 @default(0) @map("rounds_completed")
-  currentRound            Int                 @default(0) @map("current_round")
-  pairingMethod           String              @default("automatic") @map("pairing_method") @db.VarChar(20)
-  tiebreakCriteria        String              @default("buchholz") @map("tiebreak_criteria") @db.VarChar(50)
-  allowLateRegistration   Boolean             @default(false) @map("allow_late_registration")
-  spectatorDelaySeconds   Int                 @default(0) @map("spectator_delay_seconds")
-  registrationDeadline    DateTime            @map("registration_deadline") @db.Timestamp(6)
-  startTime               DateTime            @map("start_time") @db.Timestamp(6)
-  endTime                 DateTime?           @map("end_time") @db.Timestamp(6)
-  shareLink               String?             @unique @map("share_link") @db.VarChar(255)
-  qrCodeUrl               String?             @map("qr_code_url") @db.Text
-  prizeDescription        String?             @map("prize_description") @db.Text
-  createdAt               DateTime            @default(now()) @map("created_at") @db.Timestamp(6)
-  updatedAt               DateTime            @default(now()) @updatedAt @map("updated_at") @db.Timestamp(6)
-
-  // Relations
-  creator User                @relation(fields: [creatorId], references: [id], onDelete: Cascade)
-  players TournamentPlayer[]
-  pairings TournamentPairing[]
-  games   Game[]
-
-  @@index([creatorId])
-  @@index([status])
-  @@index([startTime])
-  @@index([shareLink])
-  @@map("tournaments")
-}
-
-model TournamentPlayer {
-  id              String     @id @default(uuid()) @db.Uuid
-  tournamentId    String     @map("tournament_id") @db.Uuid
-  userId          String     @map("user_id") @db.Uuid
-  score           Decimal    @default(0.0) @db.Decimal(4, 1)
-  wins            Int        @default(0)
-  losses          Int        @default(0)
-  draws           Int        @default(0)
-  buchholzScore   Decimal    @default(0.0) @map("buchholz_score") @db.Decimal(6, 2)
-  sonneborBerger  Decimal    @default(0.0) @map("sonneborn_berger") @db.Decimal(6, 2)
-  rank            Int?
-  isActive        Boolean    @default(true) @map("is_active")
-  hasBye          Boolean    @default(false) @map("has_bye")
-  joinedAt        DateTime   @default(now()) @map("joined_at") @db.Timestamp(6)
-
-  // Relations
-  tournament Tournament @relation(fields: [tournamentId], references: [id], onDelete: Cascade)
-  user       User       @relation(fields: [userId], references: [id], onDelete: Cascade)
-
-  @@unique([tournamentId, userId])
-  @@index([tournamentId, score(sort: Desc)])
-  @@index([userId])
-  @@map("tournament_players")
-}
-
-model TournamentPairing {
-  id             String              @id @default(uuid()) @db.Uuid
-  tournamentId   String              @map("tournament_id") @db.Uuid
-  roundNumber    Int                 @map("round_number")
-  whitePlayerId  String?             @map("white_player_id") @db.Uuid
-  blackPlayerId  String?             @map("black_player_id") @db.Uuid
-  gameId         String?             @unique @map("game_id") @db.Uuid
-  result         PairingResult?
-  boardNumber    Int?                @map("board_number")
-  isBye          Boolean             @default(false) @map("is_bye")
-  createdAt      DateTime            @default(now()) @map("created_at") @db.Timestamp(6)
-
-  // Relations
-  tournament   Tournament @relation(fields: [tournamentId], references: [id], onDelete: Cascade)
-  whitePlayer  User?      @relation("WhitePlayerPairing", fields: [whitePlayerId], references: [id], onDelete: Cascade)
-  blackPlayer  User?      @relation("BlackPlayerPairing", fields: [blackPlayerId], references: [id], onDelete: Cascade)
-  game         Game?      @relation(fields: [gameId], references: [id], onDelete: SetNull)
-
-  @@index([tournamentId, roundNumber])
-  @@index([whitePlayerId, blackPlayerId])
-  @@index([gameId])
-  @@map("tournament_pairings")
-}
-
 enum TournamentFormat {
   SWISS              @map("swiss")
   ROUND_ROBIN        @map("round_robin")
@@ -342,14 +427,14 @@ enum TournamentFormat {
 }
 
 enum TournamentStatus {
-  CREATED              @map("created")
-  REGISTRATION_OPEN    @map("registration_open")
-  REGISTRATION_CLOSED  @map("registration_closed")
-  IN_PROGRESS          @map("in_progress")
-  ROUND_IN_PROGRESS    @map("round_in_progress")
-  ROUND_COMPLETED      @map("round_completed")
-  COMPLETED            @map("completed")
-  CANCELLED            @map("cancelled")
+  CREATED             @map("created")
+  REGISTRATION_OPEN   @map("registration_open")
+  REGISTRATION_CLOSED @map("registration_closed")
+  IN_PROGRESS         @map("in_progress")
+  ROUND_IN_PROGRESS   @map("round_in_progress")
+  ROUND_COMPLETED     @map("round_completed")
+  COMPLETED           @map("completed")
+  CANCELLED           @map("cancelled")
 
   @@map("tournament_status")
 }
@@ -363,117 +448,6 @@ enum PairingResult {
   @@map("pairing_result")
 }
 
-// ============================================================================
-// Achievements
-// ============================================================================
-
-model Achievement {
-  id          String   @id @default(uuid()) @db.Uuid
-  code        String   @unique @db.VarChar(50)
-  name        String   @db.VarChar(100)
-  description String   @db.Text
-  iconUrl     String?  @map("icon_url") @db.Text
-  category    String   @db.VarChar(30)
-  points      Int      @default(0)
-  isHidden    Boolean  @default(false) @map("is_hidden")
-  createdAt   DateTime @default(now()) @map("created_at") @db.Timestamp(6)
-
-  // Relations
-  userAchievements UserAchievement[]
-
-  @@index([code])
-  @@index([category])
-  @@map("achievements")
-}
-
-model UserAchievement {
-  id            String   @id @default(uuid()) @db.Uuid
-  userId        String   @map("user_id") @db.Uuid
-  achievementId String   @map("achievement_id") @db.Uuid
-  earnedAt      DateTime @default(now()) @map("earned_at") @db.Timestamp(6)
-
-  // Relations
-  user        User        @relation(fields: [userId], references: [id], onDelete: Cascade)
-  achievement Achievement @relation(fields: [achievementId], references: [id], onDelete: Cascade)
-
-  @@unique([userId, achievementId])
-  @@index([userId, earnedAt(sort: Desc)])
-  @@index([achievementId])
-  @@map("user_achievements")
-}
-
-// ============================================================================
-// Notifications
-// ============================================================================
-
-model Notification {
-  id        String    @id @default(uuid()) @db.Uuid
-  userId    String    @map("user_id") @db.Uuid
-  type      String    @db.VarChar(50)
-  title     String    @db.VarChar(255)
-  message   String    @db.Text
-  data      Json      @default("{}") @db.JsonB
-  isRead    Boolean   @default(false) @map("is_read")
-  linkUrl   String?   @map("link_url") @db.Text
-  createdAt DateTime  @default(now()) @map("created_at") @db.Timestamp(6)
-  readAt    DateTime? @map("read_at") @db.Timestamp(6)
-
-  // Relations
-  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
-
-  @@index([userId, createdAt(sort: Desc)])
-  @@index([userId, isRead], where: { isRead: false })
-  @@map("notifications")
-}
-
-// ============================================================================
-// Social Features
-// ============================================================================
-
-model Follow {
-  id          String   @id @default(uuid()) @db.Uuid
-  followerId  String   @map("follower_id") @db.Uuid
-  followingId String   @map("following_id") @db.Uuid
-  createdAt   DateTime @default(now()) @map("created_at") @db.Timestamp(6)
-
-  // Relations
-  follower  User @relation("Follower", fields: [followerId], references: [id], onDelete: Cascade)
-  following User @relation("Following", fields: [followingId], references: [id], onDelete: Cascade)
-
-  @@unique([followerId, followingId])
-  @@index([followerId])
-  @@index([followingId])
-  @@map("follows")
-}
-
-// ============================================================================
-// Moderation
-// ============================================================================
-
-model Report {
-  id             String       @id @default(uuid()) @db.Uuid
-  reporterId     String       @map("reporter_id") @db.Uuid
-  reportedUserId String?      @map("reported_user_id") @db.Uuid
-  gameId         String?      @map("game_id") @db.Uuid
-  reportType     String       @map("report_type") @db.VarChar(30)
-  description    String       @db.Text
-  status         ReportStatus @default(PENDING)
-  adminNotes     String?      @map("admin_notes") @db.Text
-  reviewedBy     String?      @map("reviewed_by") @db.Uuid
-  reviewedAt     DateTime?    @map("reviewed_at") @db.Timestamp(6)
-  createdAt      DateTime     @default(now()) @map("created_at") @db.Timestamp(6)
-
-  // Relations
-  reporter     User  @relation("Reporter", fields: [reporterId], references: [id], onDelete: Cascade)
-  reportedUser User? @relation("ReportedUser", fields: [reportedUserId], references: [id], onDelete: Cascade)
-  reviewer     User? @relation("Reviewer", fields: [reviewedBy], references: [id], onDelete: SetNull)
-
-  @@index([reporterId])
-  @@index([reportedUserId])
-  @@index([status])
-  @@map("reports")
-}
-
 enum ReportStatus {
   PENDING   @map("pending")
   REVIEWED  @map("reviewed")
@@ -481,25 +455,4 @@ enum ReportStatus {
   DISMISSED @map("dismissed")
 
   @@map("report_status")
-}
-
-// ============================================================================
-// Chat
-// ============================================================================
-
-model ChatMessage {
-  id          String   @id @default(uuid()) @db.Uuid
-  gameId      String   @map("game_id") @db.Uuid
-  senderId    String   @map("sender_id") @db.Uuid
-  message     String   @db.Text
-  isSpectator Boolean  @default(false) @map("is_spectator")
-  createdAt   DateTime @default(now()) @map("created_at") @db.Timestamp(6)
-
-  // Relations
-  game   Game @relation(fields: [gameId], references: [id], onDelete: Cascade)
-  sender User @relation(fields: [senderId], references: [id], onDelete: Cascade)
-
-  @@index([gameId, createdAt])
-  @@index([senderId])
-  @@map("chat_messages")
 }

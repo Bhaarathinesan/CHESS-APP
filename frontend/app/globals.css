@@ -2,20 +2,230 @@
 @tailwind components;
 @tailwind utilities;
 
-:root {
-  --background: #ffffff;
-  --foreground: #171717;
-}
-
-@media (prefers-color-scheme: dark) {
+/* Base layer for CSS variables */
+@layer base {
   :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
+    /* Fonts */
+    --font-sans: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+    --font-mono: "SF Mono", Monaco, "Cascadia Code", "Roboto Mono", Consolas, "Courier New", monospace;
+
+    /* Border radius */
+    --radius-sm: 0.25rem;
+    --radius-md: 0.5rem;
+    --radius-lg: 0.75rem;
+
+    /* Light theme colors */
+    --background: 255 255 255;
+    --background-secondary: 249 250 251;
+    --background-tertiary: 243 244 246;
+
+    --foreground: 17 24 39;
+    --foreground-secondary: 75 85 99;
+    --foreground-tertiary: 156 163 175;
+
+    --primary: 59 130 246;
+    --primary-hover: 37 99 235;
+    --primary-active: 29 78 216;
+    --primary-foreground: 255 255 255;
+
+    --secondary: 107 114 128;
+    --secondary-hover: 75 85 99;
+    --secondary-active: 55 65 81;
+    --secondary-foreground: 255 255 255;
+
+    --accent: 139 92 246;
+    --accent-hover: 124 58 237;
+    --accent-foreground: 255 255 255;
+
+    --success: 34 197 94;
+    --success-foreground: 255 255 255;
+
+    --warning: 251 146 60;
+    --warning-foreground: 255 255 255;
+
+    --error: 239 68 68;
+    --error-foreground: 255 255 255;
+
+    --info: 14 165 233;
+    --info-foreground: 255 255 255;
+
+    --border: 229 231 235;
+    --border-secondary: 209 213 219;
+
+    /* Chess board colors - light theme */
+    --chess-light: 240 217 181;
+    --chess-dark: 181 136 99;
+    --chess-highlight: 186 202 68;
+    --chess-check: 239 68 68;
+  }
+
+  .dark {
+    /* Dark theme colors */
+    --background: 17 24 39;
+    --background-secondary: 31 41 55;
+    --background-tertiary: 55 65 81;
+
+    --foreground: 243 244 246;
+    --foreground-secondary: 209 213 219;
+    --foreground-tertiary: 156 163 175;
+
+    --primary: 59 130 246;
+    --primary-hover: 96 165 250;
+    --primary-active: 147 197 253;
+    --primary-foreground: 255 255 255;
+
+    --secondary: 107 114 128;
+    --secondary-hover: 156 163 175;
+    --secondary-active: 209 213 219;
+    --secondary-foreground: 255 255 255;
+
+    --accent: 139 92 246;
+    --accent-hover: 167 139 250;
+    --accent-foreground: 255 255 255;
+
+    --success: 34 197 94;
+    --success-foreground: 255 255 255;
+
+    --warning: 251 146 60;
+    --warning-foreground: 255 255 255;
+
+    --error: 239 68 68;
+    --error-foreground: 255 255 255;
+
+    --info: 14 165 233;
+    --info-foreground: 255 255 255;
+
+    --border: 55 65 81;
+    --border-secondary: 75 85 99;
+
+    /* Chess board colors - dark theme */
+    --chess-light: 118 150 86;
+    --chess-dark: 238 238 210;
+    --chess-highlight: 186 202 68;
+    --chess-check: 239 68 68;
+  }
+
+  * {
+    @apply border-border;
+  }
+
+  body {
+    @apply bg-background text-foreground;
+    font-feature-settings: "rlig" 1, "calt" 1;
+  }
+
+  /* Smooth transitions for theme switching */
+  * {
+    transition-property: background-color, border-color, color, fill, stroke;
+    transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
+    transition-duration: 150ms;
   }
 }
 
-body {
-  color: var(--foreground);
-  background: var(--background);
-  font-family: Arial, Helvetica, sans-serif;
+/* Utility classes */
+@layer utilities {
+  /* Color utilities using RGB values */
+  .bg-background {
+    background-color: rgb(var(--background));
+  }
+  .bg-background-secondary {
+    background-color: rgb(var(--background-secondary));
+  }
+  .bg-background-tertiary {
+    background-color: rgb(var(--background-tertiary));
+  }
+  .text-foreground {
+    color: rgb(var(--foreground));
+  }
+  .text-foreground-secondary {
+    color: rgb(var(--foreground-secondary));
+  }
+  .text-foreground-tertiary {
+    color: rgb(var(--foreground-tertiary));
+  }
+  .bg-primary {
+    background-color: rgb(var(--primary));
+  }
+  .bg-primary-hover {
+    background-color: rgb(var(--primary-hover));
+  }
+  .text-primary {
+    color: rgb(var(--primary));
+  }
+  .text-primary-foreground {
+    color: rgb(var(--primary-foreground));
+  }
+  .bg-secondary {
+    background-color: rgb(var(--secondary));
+  }
+  .text-secondary {
+    color: rgb(var(--secondary));
+  }
+  .bg-accent {
+    background-color: rgb(var(--accent));
+  }
+  .text-accent {
+    color: rgb(var(--accent));
+  }
+  .bg-success {
+    background-color: rgb(var(--success));
+  }
+  .text-success {
+    color: rgb(var(--success));
+  }
+  .bg-warning {
+    background-color: rgb(var(--warning));
+  }
+  .text-warning {
+    color: rgb(var(--warning));
+  }
+  .bg-error {
+    background-color: rgb(var(--error));
+  }
+  .text-error {
+    color: rgb(var(--error));
+  }
+  .bg-info {
+    background-color: rgb(var(--info));
+  }
+  .text-info {
+    color: rgb(var(--info));
+  }
+  .border-border {
+    border-color: rgb(var(--border));
+  }
+  .border-border-secondary {
+    border-color: rgb(var(--border-secondary));
+  }
+
+  /* Chess board utilities */
+  .chess-light {
+    background-color: rgb(var(--chess-light));
+  }
+  .chess-dark {
+    background-color: rgb(var(--chess-dark));
+  }
+  .chess-highlight {
+    background-color: rgb(var(--chess-highlight));
+  }
+  .chess-check {
+    background-color: rgb(var(--chess-check));
+  }
+
+  /* Scrollbar styling */
+  .scrollbar-thin::-webkit-scrollbar {
+    width: 8px;
+    height: 8px;
+  }
+  .scrollbar-thin::-webkit-scrollbar-track {
+    background-color: rgb(var(--background-secondary));
+    border-radius: 4px;
+  }
+  .scrollbar-thin::-webkit-scrollbar-thumb {
+    background-color: rgb(var(--border-secondary));
+    border-radius: 4px;
+  }
+  .scrollbar-thin::-webkit-scrollbar-thumb:hover {
+    background-color: rgb(var(--foreground-tertiary));
+  }
 }
