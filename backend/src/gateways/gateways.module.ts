@@ -12,9 +12,12 @@ import { ConfigModule } from '@nestjs/config';
 import { ChessModule } from '../chess/chess.module';
 import { ChatModule } from '../chat/chat.module';
 import { TournamentsModule } from '../tournaments/tournaments.module';
+import { AntiCheatModule } from '../anti-cheat/anti-cheat.module';
+import { MatchmakingModule } from '../matchmaking/matchmaking.module';
+import { NotificationsModule } from '../notifications/notifications.module';
 
 @Module({
-  imports: [AuthModule, PrismaModule, RedisModule, ConfigModule, ChessModule, ChatModule, TournamentsModule],
+  imports: [AuthModule, PrismaModule, RedisModule, ConfigModule, ChessModule, ChatModule, TournamentsModule, AntiCheatModule, MatchmakingModule, NotificationsModule],
   providers: [
     GameGateway,
     MatchmakingGateway,

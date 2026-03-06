@@ -18,6 +18,7 @@ import { ChessEngineService } from '../chess/chess-engine.service';
 import { LatencyTrackerService } from './services/latency-tracker.service';
 import { StandingsService } from '../tournaments/standings.service';
 import { TournamentGateway } from './tournament.gateway';
+import { AntiCheatService } from '../anti-cheat/anti-cheat.service';
 
 @WebSocketGateway({
   namespace: '/game',
@@ -48,6 +49,7 @@ export class GameGateway implements OnGatewayConnection, OnGatewayDisconnect {
     private readonly standingsService: StandingsService,
     @Inject(forwardRef(() => TournamentGateway))
     private readonly tournamentGateway: TournamentGateway,
+    private readonly antiCheatService: AntiCheatService,
   ) {}
 
   async handleConnection(@ConnectedSocket() client: Socket) {
@@ -784,6 +786,15 @@ export class GameGateway implements OnGatewayConnection, OnGatewayDisconnect {
           promotionPiece: move.promotion,
         },
       });
+
+      // Track move time for anti-cheat detection (Requirement 24.10)
+      await this.antiCheatService.trackMoveTime(
+        gameId,
+        userId,
+        Math.floor(newMoveCount / 2) + (newMoveCount % 2),
+        timeTakenMs,
+        newFen,
+      );
 
       // Calculate response time (should be < 100ms per requirement 6.9)
       const validationEndTime = Date.now();
@@ -1737,6 +1748,9 @@ export class GameGateway implements OnGatewayConnection, OnGatewayDisconnect {
     
     // Clean up the game room
     this.cleanupGameRoom(gameId);
+
+    // Perform statistical analysis for anti-cheat detection (Requirement 24.13)
+    await this.antiCheatService.analyzeMovePatternsForGame(gameId);
   }
 
   /**
@@ -1816,5 +1830,95 @@ export class GameGateway implements OnGatewayConnection, OnGatewayDisconnect {
       event: 'latency_health',
       data: this.latencyTracker.getHealthStatus(),
     };
+  }
+
+  /**
+   * Track browser tab focus loss
+   * Requirement 24.11: Detect when a player's browser tab loses focus during games
+   */
+  @UseGuards(WsJwtGuard)
+  @SubscribeMessage('track_focus_loss')
+  async handleTrackFocusLoss(
+    @ConnectedSocket() client: Socket,
+    @MessageBody() data: {
+      gameId: string;
+      focusLostAt: string;
+      focusRegainedAt: string;
+    },
+  ) {
+    const userId = client.data.user?.id;
+    const { gameId, focusLostAt, focusRegainedAt } = data;
+
+    try {
+      if (!gameId || !focusLostAt || !focusRegainedAt) {
+        return {
+          event: 'error',
+          data: { message: 'Invalid focus loss data' },
+        };
+      }
+
+      await this.antiCheatService.trackFocusLoss(
+        gameId,
+        userId,
+        new Date(focusLostAt),
+        new Date(focusRegainedAt),
+      );
+
+      return {
+        event: 'focus_loss_tracked',
+        data: { success: true },
+      };
+    } catch (error) {
+      this.logger.error(`Error tracking focus loss: ${error.message}`, error.stack);
+      return {
+        event: 'error',
+        data: { message: 'Failed to track focus loss' },
+      };
+    }
+  }
+
+  /**
+   * Detect chess analysis browser extensions
+   * Requirement 24.12: Detect browser extensions that might assist with chess analysis
+   */
+  @UseGuards(WsJwtGuard)
+  @SubscribeMessage('detect_extension')
+  async handleDetectExtension(
+    @ConnectedSocket() client: Socket,
+    @MessageBody() data: {
+      gameId: string;
+      extensionName?: string;
+      extensionId?: string;
+      detectionMethod: string;
+    },
+  ) {
+    const userId = client.data.user?.id;
+    const { gameId, extensionName, extensionId, detectionMethod } = data;
+
+    try {
+      if (!gameId || !detectionMethod) {
+        return {
+          event: 'error',
+          data: { message: 'Invalid extension detection data' },
+        };
+      }
+
+      await this.antiCheatService.detectBrowserExtension(gameId, userId, {
+        extensionName,
+        extensionId,
+        detectionMethod,
+      });
+
+      return {
+        event: 'extension_detected',
+        data: { success: true },
+      };
+    } catch (error) {
+      this.logger.error(`Error detecting extension: ${error.message}`, error.stack);
+      return {
+        event: 'error',
+        data: { message: 'Failed to detect extension' },
+      };
+    }
   }
 }

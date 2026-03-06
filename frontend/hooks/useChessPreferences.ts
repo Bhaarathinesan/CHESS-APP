@@ -8,6 +8,7 @@ const STORAGE_KEY = 'chess-preferences';
 const DEFAULT_PREFERENCES: ChessPreferences = {
   boardTheme: 'default',
   pieceSet: 'default',
+  hapticEnabled: true, // Enable haptic feedback by default on supported devices (Requirement 21.4)
 };
 
 /**
@@ -28,6 +29,7 @@ export function useChessPreferences() {
         setPreferences({
           boardTheme: parsed.boardTheme || DEFAULT_PREFERENCES.boardTheme,
           pieceSet: parsed.pieceSet || DEFAULT_PREFERENCES.pieceSet,
+          hapticEnabled: parsed.hapticEnabled !== undefined ? parsed.hapticEnabled : DEFAULT_PREFERENCES.hapticEnabled,
         });
       }
     } catch (error) {
@@ -56,6 +58,10 @@ export function useChessPreferences() {
     setPreferences((prev) => ({ ...prev, pieceSet }));
   };
 
+  const updatePreferences = (updates: Partial<ChessPreferences>) => {
+    setPreferences((prev) => ({ ...prev, ...updates }));
+  };
+
   const resetPreferences = () => {
     setPreferences(DEFAULT_PREFERENCES);
   };
@@ -64,6 +70,7 @@ export function useChessPreferences() {
     preferences,
     setBoardTheme,
     setPieceSet,
+    updatePreferences,
     resetPreferences,
     isLoaded,
   };

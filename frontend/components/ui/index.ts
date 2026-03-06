@@ -12,6 +12,7 @@ export type { ToastType } from './Toast';
 export { Spinner, SpinnerOverlay } from './Spinner';
 export { Skeleton, SkeletonCard, SkeletonAvatar, SkeletonButton, SkeletonTable } from './Skeleton';
 export { default as ThemeToggle } from './ThemeToggle';
+export { Pagination } from './Pagination';
 
 // Export types
 export type {

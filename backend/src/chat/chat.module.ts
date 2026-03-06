@@ -5,9 +5,10 @@ import { ProfanityFilterService } from './profanity-filter.service';
 import { ChatRateLimiterService } from './chat-rate-limiter.service';
 import { PrismaModule } from '../prisma/prisma.module';
 import { RedisModule } from '../redis/redis.module';
+import { BlocksModule } from '../blocks/blocks.module';
 
 @Module({
-  imports: [PrismaModule, RedisModule],
+  imports: [PrismaModule, RedisModule, BlocksModule],
   controllers: [ChatController],
   providers: [ChatService, ProfanityFilterService, ChatRateLimiterService],
   exports: [ChatService, ProfanityFilterService, ChatRateLimiterService],

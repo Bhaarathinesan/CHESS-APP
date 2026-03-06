@@ -46,6 +46,8 @@ model User {
   chatMessages             ChatMessage[]
   following                Follow[]            @relation("Follower")
   followers                Follow[]            @relation("Following")
+  blocking                 Block[]             @relation("Blocker")
+  blockedBy                Block[]             @relation("Blocked")
   gamesAsBlack             Game[]              @relation("BlackPlayer")
   gamesAsWhite             Game[]              @relation("WhitePlayer")
   notifications            Notification[]
@@ -57,8 +59,14 @@ model User {
   pairingsAsBlack          TournamentPairing[] @relation("BlackPlayerPairing")
   pairingsAsWhite          TournamentPairing[] @relation("WhitePlayerPairing")
   tournamentParticipations TournamentPlayer[]
+  tournamentAwards         TournamentAward[]
   tournamentsCreated       Tournament[]
   achievements             UserAchievement[]
+  antiCheatFlags           AntiCheatFlag[]     @relation("AntiCheatFlagUser")
+  antiCheatFlagsReviewed   AntiCheatFlag[]     @relation("AntiCheatFlagReviewer")
+  bansReceived             UserBan[]           @relation("BannedUser")
+  bansIssued               UserBan[]           @relation("BanIssuer")
+  bansRevoked              UserBan[]           @relation("BanRevoker")
 
   @@index([email])
   @@index([username])
@@ -129,6 +137,7 @@ model Game {
   whiteRatingAfter   Int?               @map("white_rating_after")
   blackRatingAfter   Int?               @map("black_rating_after")
   openingName        String?            @map("opening_name") @db.VarChar(255)
+  analysisData       Json?              @map("analysis_data")
   spectatorCount     Int                @default(0) @map("spectator_count")
   startedAt          DateTime?          @map("started_at") @db.Timestamp(6)
   completedAt        DateTime?          @map("completed_at") @db.Timestamp(6)
@@ -141,6 +150,7 @@ model Game {
   whitePlayer        User               @relation("WhitePlayer", fields: [whitePlayerId], references: [id], onDelete: Cascade)
   ratingHistory      RatingHistory[]
   tournamentPairing  TournamentPairing?
+  antiCheatFlags     AntiCheatFlag[]    @relation("AntiCheatFlagGame")
 
   @@index([whitePlayerId, createdAt(sort: Desc)])
   @@index([blackPlayerId, createdAt(sort: Desc)])
@@ -209,6 +219,7 @@ model Tournament {
   games                 Game[]
   pairings              TournamentPairing[]
   players               TournamentPlayer[]
+  awards                TournamentAward[]
   creator               User                @relation(fields: [creatorId], references: [id], onDelete: Cascade)
 
   @@index([creatorId])
@@ -239,6 +250,23 @@ model TournamentPlayer {
   @@index([tournamentId, score(sort: Desc)])
   @@index([userId])
   @@map("tournament_players")
+}
+
+model TournamentAward {
+  id               String     @id @default(uuid()) @db.Uuid
+  tournamentId     String     @map("tournament_id") @db.Uuid
+  userId           String     @map("user_id") @db.Uuid
+  placement        Int
+  awardTitle       String     @map("award_title") @db.VarChar(100)
+  awardDescription String?    @map("award_description")
+  createdAt        DateTime   @default(now()) @map("created_at") @db.Timestamp(6)
+  tournament       Tournament @relation(fields: [tournamentId], references: [id], onDelete: Cascade)
+  user             User       @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([tournamentId, userId])
+  @@index([tournamentId])
+  @@index([userId])
+  @@map("tournament_awards")
 }
 
 model TournamentPairing {
@@ -324,6 +352,20 @@ model Follow {
   @@index([followerId])
   @@index([followingId])
   @@map("follows")
+}
+
+model Block {
+  id        String   @id @default(uuid()) @db.Uuid
+  blockerId String   @map("blocker_id") @db.Uuid
+  blockedId String   @map("blocked_id") @db.Uuid
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamp(6)
+  blocker   User     @relation("Blocker", fields: [blockerId], references: [id], onDelete: Cascade)
+  blocked   User     @relation("Blocked", fields: [blockedId], references: [id], onDelete: Cascade)
+
+  @@unique([blockerId, blockedId])
+  @@index([blockerId])
+  @@index([blockedId])
+  @@map("blocks")
 }
 
 model Report {
@@ -455,4 +497,147 @@ enum ReportStatus {
   DISMISSED @map("dismissed")
 
   @@map("report_status")
+}
+
+model CollegeDomain {
+  id          String   @id @default(uuid()) @db.Uuid
+  domain      String   @unique @db.VarChar(255)
+  collegeName String   @map("college_name") @db.VarChar(255)
+  isActive    Boolean  @default(true) @map("is_active")
+  createdAt   DateTime @default(now()) @map("created_at") @db.Timestamp(6)
+  updatedAt   DateTime @default(now()) @updatedAt @map("updated_at") @db.Timestamp(6)
+
+  @@index([isActive])
+  @@map("college_domains")
+}
+
+model AntiCheatFlag {
+  id         String              @id @default(uuid()) @db.Uuid
+  userId     String              @map("user_id") @db.Uuid
+  gameId     String?             @map("game_id") @db.Uuid
+  flagType   AntiCheatFlagType   @map("flag_type")
+  severity   Int                 @default(1)
+  details    Json                @default("{}")
+  status     AntiCheatFlagStatus @default(PENDING)
+  reviewedBy String?             @map("reviewed_by") @db.Uuid
+  reviewedAt DateTime?           @map("reviewed_at") @db.Timestamp(6)
+  adminNotes String?             @map("admin_notes")
+  createdAt  DateTime            @default(now()) @map("created_at") @db.Timestamp(6)
+  user       User                @relation("AntiCheatFlagUser", fields: [userId], references: [id], onDelete: Cascade)
+  game       Game?               @relation("AntiCheatFlagGame", fields: [gameId], references: [id], onDelete: SetNull)
+  reviewer   User?               @relation("AntiCheatFlagReviewer", fields: [reviewedBy], references: [id], onDelete: SetNull)
+
+  @@index([userId])
+  @@index([gameId])
+  @@index([status])
+  @@index([flagType])
+  @@index([createdAt(sort: Desc)])
+  @@map("anti_cheat_flags")
+}
+
+enum AntiCheatFlagType {
+  FAST_MOVES          @map("fast_moves")
+  TAB_FOCUS_LOSS      @map("tab_focus_loss")
+  BROWSER_EXTENSION   @map("browser_extension")
+  STATISTICAL_ANOMALY @map("statistical_anomaly")
+
+  @@map("anti_cheat_flag_type")
+}
+
+enum AntiCheatFlagStatus {
+  PENDING   @map("pending")
+  REVIEWED  @map("reviewed")
+  CONFIRMED @map("confirmed")
+  DISMISSED @map("dismissed")
+
+  @@map("anti_cheat_flag_status")
+}
+
+model UserBan {
+  id           String   @id @default(uuid()) @db.Uuid
+  userId       String   @map("user_id") @db.Uuid
+  banType      BanType  @map("ban_type")
+  reason       String
+  expiresAt    DateTime? @map("expires_at") @db.Timestamp(6)
+  issuedBy     String   @map("issued_by") @db.Uuid
+  issuedAt     DateTime @default(now()) @map("issued_at") @db.Timestamp(6)
+  revokedAt    DateTime? @map("revoked_at") @db.Timestamp(6)
+  revokedBy    String?  @map("revoked_by") @db.Uuid
+  revokeReason String?  @map("revoke_reason")
+  isActive     Boolean  @default(true) @map("is_active")
+  user         User     @relation("BannedUser", fields: [userId], references: [id], onDelete: Cascade)
+  issuer       User     @relation("BanIssuer", fields: [issuedBy], references: [id], onDelete: Restrict)
+  revoker      User?    @relation("BanRevoker", fields: [revokedBy], references: [id], onDelete: SetNull)
+
+  @@index([userId])
+  @@index([issuedBy])
+  @@index([isActive])
+  @@index([issuedAt(sort: Desc)])
+  @@map("user_bans")
+}
+
+enum BanType {
+  WARNING    @map("warning")
+  TEMPORARY  @map("temporary")
+  PERMANENT  @map("permanent")
+
+  @@map("ban_type")
+}
+
+model Announcement {
+  id        String              @id @default(uuid()) @db.Uuid
+  title     String              @db.VarChar(255)
+  message   String
+  priority  AnnouncementPriority @default(NORMAL)
+  linkUrl   String?             @map("link_url")
+  createdBy String              @map("created_by") @db.Uuid
+  createdAt DateTime            @default(now()) @map("created_at") @db.Timestamp(6)
+  expiresAt DateTime?           @map("expires_at") @db.Timestamp(6)
+  isActive  Boolean             @default(true) @map("is_active")
+
+  @@index([createdAt(sort: Desc)])
+  @@index([isActive])
+  @@index([priority])
+  @@map("announcements")
+}
+
+enum AnnouncementPriority {
+  LOW      @map("low")
+  NORMAL   @map("normal")
+  HIGH     @map("high")
+  URGENT   @map("urgent")
+
+  @@map("announcement_priority")
+}
+
+model SystemLog {
+  id          String    @id @default(uuid()) @db.Uuid
+  level       LogLevel
+  message     String
+  context     String?   @db.VarChar(255)
+  metadata    Json?
+  stackTrace  String?   @map("stack_trace")
+  userId      String?   @map("user_id") @db.Uuid
+  ipAddress   String?   @map("ip_address") @db.VarChar(45)
+  userAgent   String?   @map("user_agent")
+  method      String?   @db.VarChar(10)
+  url         String?
+  statusCode  Int?      @map("status_code")
+  responseTime Int?     @map("response_time")
+  createdAt   DateTime  @default(now()) @map("created_at") @db.Timestamp(6)
+
+  @@index([level])
+  @@index([createdAt(sort: Desc)])
+  @@index([userId])
+  @@index([context])
+  @@map("system_logs")
+}
+
+enum LogLevel {
+  ERROR   @map("error")
+  WARN    @map("warn")
+  INFO    @map("info")
+  DEBUG   @map("debug")
+
+  @@map("log_level")
 }

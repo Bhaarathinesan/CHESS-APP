@@ -5,6 +5,7 @@ import {
   ForbiddenException,
 } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
+import { GameStatus } from '@prisma/client';
 import {
   PgnParserService,
   ParsedGame,
@@ -12,6 +13,7 @@ import {
 } from '../chess/pgn-parser.service';
 import { PgnFormatterService } from '../chess/pgn-formatter.service';
 import { RatingsService } from '../ratings/ratings.service';
+import { AchievementsService } from '../achievements/achievements.service';
 import { CreateGameDto } from './dto/create-game.dto';
 import { GameResponseDto, PlayerDto } from './dto/game-response.dto';
 import { RecordGameResultDto } from './dto/record-game-result.dto';
@@ -28,6 +30,7 @@ export class GamesService {
     private readonly pgnParser: PgnParserService,
     private readonly pgnFormatter: PgnFormatterService,
     private readonly ratingsService: RatingsService,
+    private readonly achievementsService: AchievementsService,
   ) {}
 
   /**
@@ -212,6 +215,132 @@ export class GamesService {
   }
 
   /**
+   * Get a public game by ID (for sharing)
+   * Requirements: 14.11
+   */
+  async getPublicGame(gameId: string): Promise<GameResponseDto> {
+    const game = await this.prisma.game.findUnique({
+      where: { id: gameId, status: 'COMPLETED' },
+      include: {
+        whitePlayer: {
+          select: {
+            id: true,
+            username: true,
+            displayName: true,
+            avatarUrl: true,
+          },
+        },
+        blackPlayer: {
+          select: {
+            id: true,
+            username: true,
+            displayName: true,
+            avatarUrl: true,
+          },
+        },
+        moves: {
+          orderBy: [{ moveNumber: 'asc' }, { color: 'asc' }],
+        },
+      },
+    });
+
+    if (!game) {
+      throw new NotFoundException(`Game with ID ${gameId} not found or not completed`);
+    }
+
+    // Get current ratings
+    const whiteRating = await this.getCurrentRating(
+      game.whitePlayerId,
+      game.timeControl,
+    );
+    const blackRating = await this.getCurrentRating(
+      game.blackPlayerId,
+      game.timeControl,
+    );
+
+    return this.mapGameToResponse(game, whiteRating, blackRating);
+  }
+
+  /**
+   * Get public game moves (for sharing)
+   * Requirements: 14.11
+   */
+  async getPublicGameMoves(gameId: string) {
+    const game = await this.prisma.game.findUnique({
+      where: { id: gameId, status: 'COMPLETED' },
+      select: { id: true },
+    });
+
+    if (!game) {
+      throw new NotFoundException(`Game with ID ${gameId} not found or not completed`);
+    }
+
+    const moves = await this.prisma.gameMove.findMany({
+      where: { gameId },
+      orderBy: [{ moveNumber: 'asc' }, { color: 'asc' }],
+      select: {
+        id: true,
+        moveNumber: true,
+        color: true,
+        san: true,
+        uci: true,
+        fenAfter: true,
+        timeTakenMs: true,
+        timeRemainingMs: true,
+        isCheck: true,
+        isCheckmate: true,
+        isCapture: true,
+        isCastling: true,
+        isEnPassant: true,
+        isPromotion: true,
+        promotionPiece: true,
+      },
+    });
+
+    return moves;
+  }
+
+  /**
+   * Get moves for a game
+   * Requirements: 14.9
+   */
+  async getGameMoves(gameId: string) {
+    const game = await this.prisma.game.findUnique({
+      where: { id: gameId },
+      select: { id: true },
+    });
+
+    if (!game) {
+      throw new NotFoundException(`Game with ID ${gameId} not found`);
+    }
+
+    const moves = await this.prisma.gameMove.findMany({
+      where: { gameId },
+      orderBy: [{ moveNumber: 'asc' }, { color: 'asc' }],
+      select: {
+        id: true,
+        moveNumber: true,
+        color: true,
+        san: true,
+        uci: true,
+        fenAfter: true,
+        timeTakenMs: true,
+        timeRemainingMs: true,
+        isCheck: true,
+        isCheckmate: true,
+        isCapture: true,
+        isCastling: true,
+        isEnPassant: true,
+        isPromotion: true,
+        promotionPiece: true,
+      },
+    });
+
+    return moves;
+  }
+
+
+  /**
    * Get active games for a user
    * @param userId User ID
    * @returns List of active games
@@ -382,6 +511,22 @@ export class GamesService {
         // Log error but don't fail the game completion
         console.error('Failed to update ratings:', error);
       }
+    }
+
+    // Check for gameplay achievements for both players
+    try {
+      await Promise.all([
+        this.achievementsService.checkGameplayAchievements(
+          updatedGame.whitePlayerId,
+          updatedGame.id,
+        ),
+        this.achievementsService.checkGameplayAchievements(
+          updatedGame.blackPlayerId,
+          updatedGame.id,
+        ),
+      ]);
+    } catch (error) {
+      console.error('Failed to check gameplay achievements:', error);
     }
 
     const whiteRating = await this.getCurrentRating(
@@ -1022,5 +1167,132 @@ export class GamesService {
     }
 
     return null;
+  }
+
+  /**
+   * Request game analysis
+   * Requirements: 15.2
+   */
+  async requestAnalysis(gameId: string, userId: string) {
+    // Verify game exists and user has access
+    const game = await this.prisma.game.findUnique({
+      where: { id: gameId },
+      include: {
+        whitePlayer: true,
+        blackPlayer: true,
+      },
+    });
+
+    if (!game) {
+      throw new NotFoundException('Game not found');
+    }
+
+    // Check if game is completed
+    if (game.status !== GameStatus.COMPLETED) {
+      throw new BadRequestException('Can only analyze completed games');
+    }
+
+    // Check if user is a player in the game or has access
+    const isPlayer =
+      game.whitePlayerId === userId || game.blackPlayerId === userId;
+    
+    if (!isPlayer) {
+      throw new ForbiddenException('You do not have access to this game');
+    }
+
+    // Return game data for client-side analysis
+    return {
+      gameId: game.id,
+      pgn: game.pgn,
+      status: 'pending',
+      message: 'Analysis can be performed client-side using Stockfish WASM',
+    };
+  }
+
+  /**
+   * Get game analysis
+   * Requirements: 15.2
+   */
+  async getAnalysis(gameId: string, userId: string) {
+    // Verify game exists and user has access
+    const game = await this.prisma.game.findUnique({
+      where: { id: gameId },
+      select: {
+        id: true,
+        whitePlayerId: true,
+        blackPlayerId: true,
+        analysisData: true,
+        status: true,
+      },
+    });
+
+    if (!game) {
+      throw new NotFoundException('Game not found');
+    }
+
+    // Check if user is a player in the game
+    const isPlayer =
+      game.whitePlayerId === userId || game.blackPlayerId === userId;
+    
+    if (!isPlayer) {
+      throw new ForbiddenException('You do not have access to this game');
+    }
+
+    if (!game.analysisData) {
+      return {
+        gameId: game.id,
+        status: 'not_analyzed',
+        message: 'Game has not been analyzed yet',
+      };
+    }
+
+    return {
+      gameId: game.id,
+      status: 'completed',
+      analysis: game.analysisData,
+    };
+  }
+
+  /**
+   * Save game analysis results
+   * Requirements: 15.2
+   */
+  async saveAnalysis(gameId: string, userId: string, analysisData: any) {
+    // Verify game exists and user has access
+    const game = await this.prisma.game.findUnique({
+      where: { id: gameId },
+      select: {
+        id: true,
+        whitePlayerId: true,
+        blackPlayerId: true,
+        status: true,
+      },
+    });
+
+    if (!game) {
+      throw new NotFoundException('Game not found');
+    }
+
+    // Check if user is a player in the game
+    const isPlayer =
+      game.whitePlayerId === userId || game.blackPlayerId === userId;
+    
+    if (!isPlayer) {
+      throw new ForbiddenException('You do not have access to this game');
+    }
+
+    // Save analysis data
+    await this.prisma.game.update({
+      where: { id: gameId },
+      data: {
+        analysisData: analysisData,
+      },
+    });
+
+    return {
+      gameId: game.id,
+      status: 'saved',
+      message: 'Analysis saved successfully',
+    };
   }
 }

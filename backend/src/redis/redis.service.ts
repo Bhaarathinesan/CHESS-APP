@@ -237,6 +237,22 @@ export class RedisService implements OnModuleDestroy {
   }
 
   /**
+   * Delete all keys matching a pattern
+   * @param pattern - Key pattern (e.g., "user:*")
+   * @returns Number of keys deleted
+   */
+  async deletePattern(pattern: string): Promise<number> {
+    try {
+      const keys = await this.keys(pattern);
+      if (keys.length === 0) return 0;
+      return await this.deleteMany(keys);
+    } catch (error) {
+      this.logger.error(`Error deleting keys with pattern ${pattern}:`, error);
+      throw error;
+    }
+  }
+
+  /**
    * Flush all keys from the current database
    * WARNING: This will delete all data in the current Redis database
    */

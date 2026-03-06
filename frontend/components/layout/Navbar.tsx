@@ -2,11 +2,14 @@
 
 import Link from 'next/link';
 import { useState } from 'react';
-import { ChevronDown } from 'lucide-react';
+import { ChevronDown, Menu, X } from 'lucide-react';
 import ThemeToggle from '@/components/ui/ThemeToggle';
+import { useResponsive } from '@/hooks/useResponsive';
 
 export default function Navbar() {
   const [isUserMenuOpen, setIsUserMenuOpen] = useState(false);
+  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+  const { isMobile } = useResponsive();
 
   return (
     <nav className="fixed top-0 left-0 right-0 z-50 bg-background border-b border-border h-16">
@@ -49,6 +52,19 @@ export default function Navbar() {
 
         {/* Right side actions */}
         <div className="flex items-center gap-2">
+          {/* Hamburger Menu Button (Mobile/Tablet) */}
+          <button
+            onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
+            className="md:hidden p-2 hover:bg-background-secondary rounded-lg transition-colors"
+            aria-label="Toggle menu"
+          >
+            {isMobileMenuOpen ? (
+              <X className="w-6 h-6 text-foreground" />
+            ) : (
+              <Menu className="w-6 h-6 text-foreground" />
+            )}
+          </button>
+
           {/* Theme Toggle */}
           <ThemeToggle />
 
@@ -86,7 +102,7 @@ export default function Navbar() {
                       Profile
                     </Link>
                     <Link
-                      href="/profile/settings"
+                      href="/settings"
                       className="block px-4 py-2 text-foreground-secondary hover:bg-background-tertiary hover:text-foreground transition-colors"
                       onClick={() => setIsUserMenuOpen(false)}
                     >
@@ -108,6 +124,48 @@ export default function Navbar() {
           </div>
         </div>
       </div>
+
+      {/* Mobile Menu Overlay */}
+      {isMobileMenuOpen && (
+        <>
+          <div
+            className="fixed inset-0 bg-black/50 z-40 md:hidden"
+            onClick={() => setIsMobileMenuOpen(false)}
+          />
+          <div className="fixed top-16 left-0 right-0 bg-background border-b border-border z-50 md:hidden animate-slide-up">
+            <div className="p-4 space-y-2">
+              <Link
+                href="/play"
+                className="block px-4 py-3 text-foreground hover:bg-background-secondary rounded-lg transition-colors"
+                onClick={() => setIsMobileMenuOpen(false)}
+              >
+                Play
+              </Link>
+              <Link
+                href="/tournaments"
+                className="block px-4 py-3 text-foreground hover:bg-background-secondary rounded-lg transition-colors"
+                onClick={() => setIsMobileMenuOpen(false)}
+              >
+                Tournaments
+              </Link>
+              <Link
+                href="/leaderboard"
+                className="block px-4 py-3 text-foreground hover:bg-background-secondary rounded-lg transition-colors"
+                onClick={() => setIsMobileMenuOpen(false)}
+              >
+                Leaderboard
+              </Link>
+              <Link
+                href="/history"
+                className="block px-4 py-3 text-foreground hover:bg-background-secondary rounded-lg transition-colors"
+                onClick={() => setIsMobileMenuOpen(false)}
+              >
+                History
+              </Link>
+            </div>
+          </div>
+        </>
+      )}
     </nav>
   );
 }

@@ -2,6 +2,7 @@ import { Injectable, BadRequestException, ForbiddenException } from '@nestjs/com
 import { PrismaService } from '../prisma/prisma.service';
 import { ProfanityFilterService } from './profanity-filter.service';
 import { ChatRateLimiterService } from './chat-rate-limiter.service';
+import { BlocksService } from '../blocks/blocks.service';
 
 @Injectable()
 export class ChatService {
@@ -9,6 +10,7 @@ export class ChatService {
     private prisma: PrismaService,
     private profanityFilter: ProfanityFilterService,
     private rateLimiter: ChatRateLimiterService,
+    private blocksService: BlocksService,
   ) {}
 
   /**
@@ -26,6 +28,31 @@ export class ChatService {
 
     if (content.length > 200) {
       throw new BadRequestException('Message cannot exceed 200 characters');
+    }
+
+    // Get the game to find the opponent
+    const game = await this.prisma.game.findUnique({
+      where: { id: gameId },
+      select: { whitePlayerId: true, blackPlayerId: true },
+    });
+
+    if (!game) {
+      throw new BadRequestException('Game not found');
+    }
+
+    // Find the opponent
+    const opponentId =
+      game.whitePlayerId === senderId
+        ? game.blackPlayerId
+        : game.whitePlayerId;
+
+    // Check if there's a block relationship (Requirement 31.10)
+    const hasBlock = await this.blocksService.hasBlockRelationship(
+      senderId,
+      opponentId,
+    );
+    if (hasBlock) {
+      throw new ForbiddenException('Cannot send messages to this user');
     }
 
     // Check if user has chat enabled globally (Requirement 19.5)

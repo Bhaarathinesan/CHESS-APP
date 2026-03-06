@@ -11,21 +11,29 @@ import {
   Req,
   HttpCode,
   HttpStatus,
+  Res,
+  StreamableFile,
 } from '@nestjs/common';
+import { Response } from 'express';
 import { TournamentsService } from './tournaments.service';
 import { StandingsService } from './standings.service';
+import { TournamentExportService } from './tournament-export.service';
+import { TournamentAwardsService } from './tournament-awards.service';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { RolesGuard } from '../auth/guards/roles.guard';
 import { Roles } from '../auth/decorators/roles.decorator';
 import { CreateTournamentDto } from './dto/create-tournament.dto';
 import { UpdateTournamentDto } from './dto/update-tournament.dto';
 import { TournamentQueryDto } from './dto/tournament-query.dto';
+import { AwardConfigDto } from './dto/tournament-award.dto';
 
 @Controller('tournaments')
 export class TournamentsController {
   constructor(
     private readonly tournamentsService: TournamentsService,
     private readonly standingsService: StandingsService,
+    private readonly exportService: TournamentExportService,
+    private readonly awardsService: TournamentAwardsService,
   ) {}
 
   /**
@@ -197,5 +205,134 @@ export class TournamentsController {
   @Get(':id/standings')
   async getStandings(@Param('id') tournamentId: string) {
     return this.standingsService.getStandings(tournamentId);
+  }
+
+  /**
+   * Get tournament pairings
+   * GET /api/tournaments/:id/pairings
+   * Requirements: 12.5, 12.6
+   * Returns pairings for specified round or all rounds
+   * Supports filtering by round number
+   */
+  @Get(':id/pairings')
+  async getPairings(
+    @Param('id') tournamentId: string,
+    @Query('round') round?: string,
+  ) {
+    const roundNumber = round ? parseInt(round, 10) : undefined;
+    return this.tournamentsService.getPairings(tournamentId, roundNumber);
+  }
+
+  /**
+   * Export tournament results as CSV
+   * GET /api/tournaments/:id/export/csv
+   * Requirements: 12.9, 12.10
+   * Returns CSV file download
+   */
+  @Get(':id/export/csv')
+  async exportResultsAsCSV(
+    @Param('id') tournamentId: string,
+    @Res() res: Response,
+  ) {
+    const csvBuffer = await this.exportService.exportAsCSV(tournamentId);
+    
+    // Get tournament name for filename
+    const tournament = await this.tournamentsService.getTournamentById(tournamentId, false);
+    const filename = `${tournament.name.replace(/[^a-z0-9]/gi, '_')}_results.csv`;
+
+    res.set({
+      'Content-Type': 'text/csv',
+      'Content-Disposition': `attachment; filename="${filename}"`,
+      'Content-Length': csvBuffer.length,
+    });
+
+    res.send(csvBuffer);
+  }
+
+  /**
+   * Export tournament results as PDF
+   * GET /api/tournaments/:id/export/pdf
+   * Requirements: 12.9, 12.10
+   * Returns PDF file download
+   */
+  @Get(':id/export/pdf')
+  async exportResultsAsPDF(
+    @Param('id') tournamentId: string,
+    @Res() res: Response,
+  ) {
+    const pdfBuffer = await this.exportService.exportAsPDF(tournamentId);
+    
+    // Get tournament name for filename
+    const tournament = await this.tournamentsService.getTournamentById(tournamentId, false);
+    const filename = `${tournament.name.replace(/[^a-z0-9]/gi, '_')}_results.pdf`;
+
+    res.set({
+      'Content-Type': 'application/pdf',
+      'Content-Disposition': `attachment; filename="${filename}"`,
+      'Content-Length': pdfBuffer.length,
+    });
+
+    res.send(pdfBuffer);
+  }
+
+  /**
+   * Get tournament history for a player
+   * GET /api/tournaments/history/:userId
+   * Requirements: 12.11
+   * Returns all tournaments a player has participated in with performance stats
+   */
+  @Get('history/:userId')
+  async getTournamentHistory(
+    @Param('userId') userId: string,
+    @Query('status') status?: string,
+    @Query('limit') limit?: string,
+    @Query('offset') offset?: string,
+  ) {
+    const options = {
+      status,
+      limit: limit ? parseInt(limit, 10) : undefined,
+      offset: offset ? parseInt(offset, 10) : undefined,
+    };
+    return this.tournamentsService.getTournamentHistory(userId, options);
+  }
+
+  /**
+   * Award prizes to top finishers
+   * POST /api/tournaments/:id/awards
+   * Requirements: 12.12
+   * Only tournament creator or Super_Admin can award prizes
+   */
+  @Post(':id/awards')
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles('TOURNAMENT_ADMIN', 'SUPER_ADMIN')
+  @HttpCode(HttpStatus.CREATED)
+  async awardPrizes(
+    @Param('id') tournamentId: string,
+    @Body() awardConfigs: AwardConfigDto[],
+    @Req() req: any,
+  ) {
+    return this.awardsService.awardPrizes(tournamentId, awardConfigs);
+  }
+
+  /**
+   * Get tournament awards
+   * GET /api/tournaments/:id/awards
+   * Requirements: 12.12
+   * Returns all awards for a tournament
+   */
+  @Get(':id/awards')
+  async getTournamentAwards(@Param('id') tournamentId: string) {
+    return this.awardsService.getTournamentAwards(tournamentId);
+  }
+
+  /**
+   * Get user awards across all tournaments
+   * GET /api/users/:userId/awards
+   * Requirements: 12.12
+   * Returns all awards earned by a user
+   */
+  @Get('users/:userId/awards')
+  async getUserAwards(@Param('userId') userId: string) {
+    return this.awardsService.getUserAwards(userId);
   }
 }

@@ -1,9 +1,10 @@
 'use client';
 
 import { useState } from 'react';
-import { Settings, X, Check } from 'lucide-react';
+import { Settings, X, Check, Vibrate } from 'lucide-react';
 import { BOARD_THEMES, PIECE_SETS } from '@/types/chess-preferences';
 import { useChessPreferences } from '@/hooks/useChessPreferences';
+import { useHapticFeedback } from '@/hooks/useHapticFeedback';
 
 interface BoardSettingsProps {
   onClose?: () => void;
@@ -11,12 +12,23 @@ interface BoardSettingsProps {
 
 /**
  * Board and piece customization settings component
- * Allows users to select board themes and piece sets
- * Requirements: 22.16, 22.17
+ * Allows users to select board themes, piece sets, and haptic feedback
+ * Requirements: 22.16, 22.17, 21.4
  */
 export default function BoardSettings({ onClose }: BoardSettingsProps) {
   const { preferences, setBoardTheme, setPieceSet, resetPreferences } = useChessPreferences();
-  const [activeTab, setActiveTab] = useState<'board' | 'pieces'>('board');
+  const { isSupported: isHapticSupported, isEnabled: isHapticEnabled, setHapticEnabled, triggerHaptic } = useHapticFeedback();
+  const [activeTab, setActiveTab] = useState<'board' | 'pieces' | 'preferences'>('board');
+
+  const handleHapticToggle = () => {
+    const newValue = !isHapticEnabled;
+    setHapticEnabled(newValue);
+    
+    // Trigger a test haptic when enabling
+    if (newValue && isHapticSupported) {
+      triggerHaptic('MOVE');
+    }
+  };
 
   return (
     <div className="bg-white dark:bg-gray-800 rounded-lg shadow-xl w-full max-w-2xl max-h-[80vh] overflow-hidden flex flex-col">
@@ -59,6 +71,16 @@ export default function BoardSettings({ onClose }: BoardSettingsProps) {
           }`}
         >
           Piece Sets
+        </button>
+        <button
+          onClick={() => setActiveTab('preferences')}
+          className={`flex-1 px-4 py-3 text-sm font-medium transition-colors ${
+            activeTab === 'preferences'
+              ? 'text-blue-600 dark:text-blue-400 border-b-2 border-blue-600 dark:border-blue-400'
+              : 'text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-200'
+          }`}
+        >
+          Preferences
         </button>
       </div>
 
@@ -138,6 +160,49 @@ export default function BoardSettings({ onClose }: BoardSettingsProps) {
                 </div>
               </button>
             ))}
+          </div>
+        )}
+
+        {activeTab === 'preferences' && (
+          <div className="space-y-4">
+            {/* Haptic Feedback Setting (Requirement 21.4) */}
+            <div className="p-4 rounded-lg border border-gray-200 dark:border-gray-700">
+              <div className="flex items-start justify-between">
+                <div className="flex items-start gap-3">
+                  <Vibrate className="w-5 h-5 text-gray-700 dark:text-gray-300 mt-0.5" />
+                  <div>
+                    <div className="font-medium text-gray-900 dark:text-white">
+                      Haptic Feedback
+                    </div>
+                    <div className="text-sm text-gray-600 dark:text-gray-400 mt-1">
+                      Vibrate on piece moves, captures, and check
+                    </div>
+                    {!isHapticSupported && (
+                      <div className="text-xs text-amber-600 dark:text-amber-400 mt-2">
+                        Not supported on this device
+                      </div>
+                    )}
+                  </div>
+                </div>
+                <button
+                  onClick={handleHapticToggle}
+                  disabled={!isHapticSupported}
+                  className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${
+                    isHapticEnabled && isHapticSupported
+                      ? 'bg-blue-600'
+                      : 'bg-gray-300 dark:bg-gray-600'
+                  } ${!isHapticSupported ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'}`}
+                >
+                  <span
+                    className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${
+                      isHapticEnabled && isHapticSupported ? 'translate-x-6' : 'translate-x-1'
+                    }`}
+                  />
+                </button>
+              </div>
+            </div>
+
+            {/* Additional preferences can be added here */}
           </div>
         )}
       </div>

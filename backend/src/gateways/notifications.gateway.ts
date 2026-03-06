@@ -27,6 +27,13 @@ export class NotificationsGateway
 
   handleConnection(@ConnectedSocket() client: Socket) {
     this.logger.log(`Client connected to /notifications: ${client.id}`);
+    
+    // Join user-specific room if authenticated
+    const userId = (client as any).user?.userId;
+    if (userId) {
+      client.join(`user:${userId}`);
+      this.logger.log(`Client ${client.id} joined room user:${userId}`);
+    }
   }
 
   handleDisconnect(@ConnectedSocket() client: Socket) {
@@ -36,7 +43,11 @@ export class NotificationsGateway
   @UseGuards(WsJwtGuard)
   @SubscribeMessage('subscribe')
   handleSubscribe(@ConnectedSocket() client: Socket) {
-    this.logger.log(`Client ${client.id} subscribed to notifications`);
+    const userId = (client as any).user?.userId;
+    if (userId) {
+      client.join(`user:${userId}`);
+      this.logger.log(`Client ${client.id} subscribed to notifications for user ${userId}`);
+    }
     return { event: 'subscribed' };
   }
 }

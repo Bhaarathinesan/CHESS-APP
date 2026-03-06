@@ -2,6 +2,8 @@ import { Injectable, Logger, BadRequestException } from '@nestjs/common';
 import { RedisService } from '../redis/redis.service';
 import { PrismaService } from '../prisma/prisma.service';
 import { GamesService } from '../games/games.service';
+import { BlocksService } from '../blocks/blocks.service';
+import { BanService } from '../admin/ban.service';
 import { TimeControl } from '@prisma/client';
 
 export interface QueueEntry {
@@ -62,6 +64,8 @@ export class MatchmakingService {
     private readonly redis: RedisService,
     private readonly prisma: PrismaService,
     private readonly gamesService: GamesService,
+    private readonly blocksService: BlocksService,
+    private readonly banService: BanService,
   ) {}
 
   setGateway(gateway: any) {
@@ -201,6 +205,12 @@ export class MatchmakingService {
     timeControl: TimeControl,
     ratingRange: number = 200,
   ): Promise<QueueStatus> {
+    // Check if user is banned (Requirements: 24.16)
+    const isBanned = await this.banService.isUserBanned(userId);
+    if (isBanned) {
+      throw new BadRequestException('Cannot join matchmaking while banned');
+    }
+
     // Check if user already in queue
     const existingQueue = await this.getUserQueue(userId);
     if (existingQueue) {
@@ -325,6 +335,12 @@ export class MatchmakingService {
     // Validate sender and receiver are different
     if (senderId === receiverId) {
       throw new BadRequestException('Cannot challenge yourself');
+    }
+
+    // Check if there's a block relationship
+    const hasBlock = await this.blocksService.hasBlockRelationship(senderId, receiverId);
+    if (hasBlock) {
+      throw new BadRequestException('Cannot challenge this user');
     }
 
     // Check if receiver exists

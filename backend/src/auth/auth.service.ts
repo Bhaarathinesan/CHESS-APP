@@ -41,7 +41,7 @@ export class AuthService {
     const { email, username, password, displayName, collegeName, collegeDomain } = registerDto;
 
     // Validate college email domain
-    this.validateCollegeDomain(email, collegeDomain);
+    await this.validateCollegeDomain(email, collegeDomain);
 
     // Check if email already exists
     const existingEmail = await this.prisma.user.findUnique({
@@ -158,7 +158,7 @@ export class AuthService {
     };
   }
 
-  private validateCollegeDomain(email: string, collegeDomain: string): void {
+  private async validateCollegeDomain(email: string, collegeDomain: string): Promise<void> {
     // Extract domain from email
     const emailDomain = email.split('@')[1];
 
@@ -166,18 +166,28 @@ export class AuthService {
       throw new BadRequestException('Invalid email format');
     }
 
+    // Normalize domains to lowercase
+    const normalizedEmailDomain = emailDomain.toLowerCase();
+    const normalizedCollegeDomain = collegeDomain.toLowerCase().trim();
+
     // Check if email domain matches the provided college domain
-    if (!emailDomain.toLowerCase().includes(collegeDomain.toLowerCase())) {
+    if (!normalizedEmailDomain.includes(normalizedCollegeDomain)) {
       throw new BadRequestException('Email domain does not match the provided college domain');
     }
 
-    // Check if the domain ends with an approved educational domain
-    const isApprovedDomain = this.APPROVED_DOMAINS.some((approvedDomain) =>
-      emailDomain.toLowerCase().endsWith(approvedDomain),
-    );
+    // Check if the domain is in the approved college domains table
+    const approvedDomain = await this.prisma.collegeDomain.findUnique({
+      where: { domain: normalizedCollegeDomain },
+    });
 
-    if (!isApprovedDomain) {
-      throw new BadRequestException('Email must be from an approved educational institution');
+    if (!approvedDomain) {
+      throw new BadRequestException(
+        'College domain is not approved. Please contact an administrator to add your institution.',
+      );
+    }
+
+    if (!approvedDomain.isActive) {
+      throw new BadRequestException('This college domain is currently inactive');
     }
   }
 
@@ -411,7 +421,7 @@ export class AuthService {
     const { email, oauthId, displayName, avatarUrl, username, collegeName, collegeDomain } = data;
 
     // Validate college email domain
-    this.validateCollegeDomain(email, collegeDomain);
+    await this.validateCollegeDomain(email, collegeDomain);
 
     // Check if username already exists
     const existingUsername = await this.prisma.user.findUnique({

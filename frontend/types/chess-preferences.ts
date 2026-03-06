@@ -202,4 +202,5 @@ export const PIECE_SETS: PieceSet[] = [
 export interface ChessPreferences {
   boardTheme: string;
   pieceSet: string;
+  hapticEnabled: boolean; // Requirement 21.4: Haptic feedback on supported devices
 }

@@ -5,6 +5,7 @@ import {
   ActiveTournamentsSection,
   RecentGamesSection,
   NotificationsList,
+  AnnouncementsBanner,
 } from '@/components/dashboard';
 
 export default function DashboardPage() {
@@ -16,6 +17,9 @@ export default function DashboardPage() {
           Welcome to ChessArena! Start playing or join a tournament.
         </p>
       </div>
+
+      {/* Announcements Banner */}
+      <AnnouncementsBanner />
 
       {/* Quick Play Section */}
       <QuickPlaySection />

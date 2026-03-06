@@ -7,6 +7,7 @@ import {
 } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { TournamentStateMachineService } from './tournament-state-machine.service';
+import { BanService } from '../admin/ban.service';
 import { CreateTournamentDto } from './dto/create-tournament.dto';
 import { UpdateTournamentDto } from './dto/update-tournament.dto';
 import { TournamentQueryDto } from './dto/tournament-query.dto';
@@ -34,6 +35,7 @@ export class TournamentsService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly stateMachine: TournamentStateMachineService,
+    private readonly banService: BanService,
   ) {}
 
   /**
@@ -618,7 +620,6 @@ export class TournamentsService {
       })),
     };
   }
-}
 
   /**
    * Join a tournament
@@ -631,6 +632,12 @@ export class TournamentsService {
     tournamentId: string,
     userId: string,
   ): Promise<TournamentResponseDto> {
+    // Check if user is banned (Requirements: 24.16)
+    const isBanned = await this.banService.isUserBanned(userId);
+    if (isBanned) {
+      throw new BadRequestException('Cannot join tournament while banned');
+    }
+
     // Get tournament
     const tournament = await this.prisma.tournament.findUnique({
       where: { id: tournamentId },
@@ -773,7 +780,6 @@ export class TournamentsService {
     // Return updated tournament
     return this.getTournamentById(tournamentId, true);
   }
-}
 
   /**
    * Start a tournament
@@ -1155,3 +1161,316 @@ export class TournamentsService {
 
     return this.mapTournamentToResponse(updatedTournament);
   }
+
+  /**
+   * Get tournament pairings
+   * Requirements: 12.5, 12.6
+   * @param tournamentId Tournament ID
+   * @param roundNumber Optional round number to filter by
+   * @returns Pairings formatted based on tournament format
+   */
+  async getPairings(tournamentId: string, roundNumber?: number) {
+    // Get tournament to check format
+    const tournament = await this.prisma.tournament.findUnique({
+      where: { id: tournamentId },
+      select: {
+        id: true,
+        format: true,
+        currentRound: true,
+        roundsTotal: true,
+        status: true,
+      },
+    });
+
+    if (!tournament) {
+      throw new NotFoundException(
+        `Tournament with ID ${tournamentId} not found`,
+      );
+    }
+
+    // Build query for pairings
+    const where: any = { tournamentId };
+    if (roundNumber !== undefined) {
+      where.roundNumber = roundNumber;
+    }
+
+    // Fetch pairings with player and game details
+    const pairings = await this.prisma.tournamentPairing.findMany({
+      where,
+      include: {
+        whitePlayer: {
+          select: {
+            id: true,
+            username: true,
+            displayName: true,
+            avatarUrl: true,
+          },
+        },
+        blackPlayer: {
+          select: {
+            id: true,
+            username: true,
+            displayName: true,
+            avatarUrl: true,
+          },
+        },
+        game: {
+          select: {
+            id: true,
+            status: true,
+            result: true,
+            terminationReason: true,
+          },
+        },
+      },
+      orderBy: [
+        { roundNumber: 'asc' },
+        { boardNumber: 'asc' },
+      ],
+    });
+
+    // Format response based on tournament format
+    if (
+      tournament.format === 'SINGLE_ELIMINATION' ||
+      tournament.format === 'DOUBLE_ELIMINATION'
+    ) {
+      // Return bracket structure for elimination tournaments
+      return this.formatEliminationBracket(pairings, tournament);
+    } else {
+      // Return pairing table for Swiss/Round Robin/Arena
+      return this.formatPairingTable(pairings, tournament);
+    }
+  }
+
+  /**
+   * Format pairings as a table for Swiss, Round Robin, and Arena tournaments
+   * Requirements: 12.5
+   */
+  private formatPairingTable(pairings: any[], tournament: any) {
+    // Group pairings by round
+    const pairingsByRound = pairings.reduce((acc, pairing) => {
+      if (!acc[pairing.roundNumber]) {
+        acc[pairing.roundNumber] = [];
+      }
+      acc[pairing.roundNumber].push({
+        id: pairing.id,
+        boardNumber: pairing.boardNumber,
+        whitePlayer: pairing.whitePlayer,
+        blackPlayer: pairing.blackPlayer,
+        result: pairing.result,
+        isBye: pairing.isBye,
+        game: pairing.game,
+      });
+      return acc;
+    }, {});
+
+    // Convert to array format
+    const rounds = Object.keys(pairingsByRound)
+      .map(Number)
+      .sort((a, b) => a - b)
+      .map((roundNumber) => ({
+        roundNumber,
+        pairings: pairingsByRound[roundNumber],
+      }));
+
+    return {
+      tournamentId: tournament.id,
+      format: tournament.format,
+      currentRound: tournament.currentRound,
+      totalRounds: tournament.roundsTotal,
+      displayType: 'table',
+      rounds,
+    };
+  }
+
+  /**
+   * Format pairings as a bracket for elimination tournaments
+   * Requirements: 12.6
+   */
+  private formatEliminationBracket(pairings: any[], tournament: any) {
+    // Group pairings by round for bracket visualization
+    const rounds = pairings.reduce((acc, pairing) => {
+      if (!acc[pairing.roundNumber]) {
+        acc[pairing.roundNumber] = [];
+      }
+      acc[pairing.roundNumber].push({
+        id: pairing.id,
+        boardNumber: pairing.boardNumber,
+        whitePlayer: pairing.whitePlayer,
+        blackPlayer: pairing.blackPlayer,
+        result: pairing.result,
+        isBye: pairing.isBye,
+        game: pairing.game,
+        winner: this.determineWinner(pairing),
+      });
+      return acc;
+    }, {});
+
+    // Convert to bracket structure
+    const bracketRounds = Object.keys(rounds)
+      .map(Number)
+      .sort((a, b) => a - b)
+      .map((roundNumber) => {
+        // Calculate round name based on remaining players
+        const roundName = this.getEliminationRoundName(
+          roundNumber,
+          tournament.format,
+          rounds,
+        );
+        return {
+          roundNumber,
+          roundName,
+          matches: rounds[roundNumber],
+        };
+      });
+
+    return {
+      tournamentId: tournament.id,
+      format: tournament.format,
+      currentRound: tournament.currentRound,
+      displayType: 'bracket',
+      bracket: bracketRounds,
+    };
+  }
+
+  /**
+   * Determine the winner of a pairing
+   */
+  private determineWinner(pairing: any): string | null {
+    if (!pairing.result) return null;
+
+    if (pairing.result === 'WHITE_WIN') {
+      return pairing.whitePlayerId;
+    } else if (pairing.result === 'BLACK_WIN') {
+      return pairing.blackPlayerId;
+    } else if (pairing.result === 'BYE') {
+      return pairing.whitePlayerId;
+    }
+    return null; // Draw or no result yet
+  }
+
+  /**
+   * Get human-readable round name for elimination tournaments
+   */
+  private getEliminationRoundName(
+    roundNumber: number,
+    format: string,
+    rounds: any,
+  ): string {
+    const totalRounds = Object.keys(rounds).length;
+    const roundsFromEnd = totalRounds - roundNumber;
+
+    if (roundsFromEnd === 0) {
+      return 'Final';
+    } else if (roundsFromEnd === 1) {
+      return 'Semi-Finals';
+    } else if (roundsFromEnd === 2) {
+      return 'Quarter-Finals';
+    } else {
+      // Calculate number of players in this round
+      const matchesInRound = rounds[roundNumber].length;
+      const playersInRound = matchesInRound * 2;
+      return `Round of ${playersInRound}`;
+    }
+  }
+
+  /**
+   * Get tournament history for a player
+   * Requirements: 12.11
+   * Returns all tournaments a player has participated in with their performance stats
+   */
+  async getTournamentHistory(
+    userId: string,
+    options?: {
+      status?: string;
+      limit?: number;
+      offset?: number;
+    },
+  ) {
+    const { status, limit = 50, offset = 0 } = options || {};
+
+    // Build where clause
+    const whereClause: any = {
+      userId,
+    };
+
+    if (status) {
+      whereClause.tournament = {
+        status,
+      };
+    }
+
+    // Get tournament participations
+    const participations = await this.prisma.tournamentPlayer.findMany({
+      where: whereClause,
+      include: {
+        tournament: {
+          select: {
+            id: true,
+            name: true,
+            format: true,
+            timeControl: true,
+            startTime: true,
+            endTime: true,
+            status: true,
+            currentPlayers: true,
+            isRated: true,
+          },
+        },
+      },
+      orderBy: {
+        joinedAt: 'desc',
+      },
+      take: limit,
+      skip: offset,
+    });
+
+    // Get total count
+    const totalCount = await this.prisma.tournamentPlayer.count({
+      where: whereClause,
+    });
+
+    // Transform to response format
+    const tournaments = participations.map((participation) => ({
+      tournamentId: participation.tournament.id,
+      tournamentName: participation.tournament.name,
+      format: participation.tournament.format,
+      timeControl: participation.tournament.timeControl,
+      startTime: participation.tournament.startTime,
+      endTime: participation.tournament.endTime,
+      status: participation.tournament.status,
+      placement: participation.rank,
+      totalPlayers: participation.tournament.currentPlayers,
+      score: Number(participation.score),
+      wins: participation.wins,
+      losses: participation.losses,
+      draws: participation.draws,
+      isRated: participation.tournament.isRated,
+    }));
+
+    // Calculate statistics
+    const completedTournaments = tournaments.filter(
+      (t) => t.status === 'COMPLETED',
+    ).length;
+    const activeTournaments = tournaments.filter(
+      (t) =>
+        t.status === 'IN_PROGRESS' ||
+        t.status === 'ROUND_IN_PROGRESS' ||
+        t.status === 'ROUND_COMPLETED' ||
+        t.status === 'REGISTRATION_OPEN' ||
+        t.status === 'REGISTRATION_CLOSED',
+    ).length;
+    const topPlacements = tournaments.filter(
+      (t) => t.placement !== null && t.placement <= 3,
+    ).length;
+
+    return {
+      userId,
+      totalTournaments: totalCount,
+      completedTournaments,
+      activeTournaments,
+      topPlacements,
+      tournaments,
+    };
+  }
+}

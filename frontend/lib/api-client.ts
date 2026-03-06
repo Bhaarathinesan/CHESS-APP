@@ -31,9 +31,12 @@ class ApiClient {
   ): Promise<T> {
     const url = `${this.baseUrl}${endpoint}`;
     
-    const headers: Record<string, string> = {
-      'Content-Type': 'application/json',
-    };
+    const headers: Record<string, string> = {};
+
+    // Only set Content-Type if body is not FormData
+    if (!(options.body instanceof FormData)) {
+      headers['Content-Type'] = 'application/json';
+    }
 
     // Add existing headers
     if (options.headers) {
@@ -82,10 +85,17 @@ class ApiClient {
   }
 
   async post<T>(endpoint: string, body?: unknown): Promise<T> {
-    return this.request<T>(endpoint, {
+    const options: RequestInit = {
       method: 'POST',
-      body: JSON.stringify(body),
-    });
+    };
+    
+    if (body instanceof FormData) {
+      options.body = body;
+    } else if (body !== undefined) {
+      options.body = JSON.stringify(body);
+    }
+    
+    return this.request<T>(endpoint, options);
   }
 
   async put<T>(endpoint: string, body?: unknown): Promise<T> {
@@ -97,6 +107,13 @@ class ApiClient {
 
   async delete<T>(endpoint: string): Promise<T> {
     return this.request<T>(endpoint, { method: 'DELETE' });
+  }
+
+  async patch<T>(endpoint: string, body?: unknown): Promise<T> {
+    return this.request<T>(endpoint, {
+      method: 'PATCH',
+      body: JSON.stringify(body),
+    });
   }
 }
 

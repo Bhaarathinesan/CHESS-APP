@@ -11,6 +11,14 @@ import { GamesModule } from './games/games.module';
 import { ChatModule } from './chat/chat.module';
 import { RatingsModule } from './ratings/ratings.module';
 import { TournamentsModule } from './tournaments/tournaments.module';
+import { UsersModule } from './users/users.module';
+import { LeaderboardsModule } from './leaderboards/leaderboards.module';
+import { AchievementsModule } from './achievements/achievements.module';
+import { NotificationsModule } from './notifications/notifications.module';
+import { FollowsModule } from './follows/follows.module';
+import { BlocksModule } from './blocks/blocks.module';
+import { AdminModule } from './admin/admin.module';
+import { ReportsModule } from './reports/reports.module';
 import configuration from './config/configuration';
 
 @Module({
@@ -28,6 +36,14 @@ import configuration from './config/configuration';
     ChatModule,
     RatingsModule,
     TournamentsModule,
+    UsersModule,
+    LeaderboardsModule,
+    AchievementsModule,
+    NotificationsModule,
+    FollowsModule,
+    BlocksModule,
+    AdminModule,
+    ReportsModule,
   ],
   controllers: [AppController],
   providers: [AppService],

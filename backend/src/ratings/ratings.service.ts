@@ -1,5 +1,6 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
+import { AchievementsService } from '../achievements/achievements.service';
 import { TimeControl, GameResult } from '@prisma/client';
 
 interface RatingCalculationInput {
@@ -20,8 +21,12 @@ interface RatingUpdateInput {
 @Injectable()
 export class RatingsService {
   private readonly logger = new Logger(RatingsService.name);
+  private leaderboardsService: any; // Lazy loaded to avoid circular dependency
 
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly achievementsService: AchievementsService,
+  ) {}
 
   /**
    * Calculate expected score using standard ELO formula
@@ -277,6 +282,61 @@ export class RatingsService {
       `Player ${userId}: ${playerRating.rating} -> ${playerNewRating} (${playerRatingChange >= 0 ? '+' : ''}${playerRatingChange}), ` +
       `Opponent ${opponentId}: ${opponentRating.rating} -> ${opponentNewRating} (${opponentRatingChange >= 0 ? '+' : ''}${opponentRatingChange})`
     );
+
+    // Check for rating achievements for both players
+    try {
+      await Promise.all([
+        this.achievementsService.checkRatingAchievements(
+          userId,
+          timeControl,
+          playerNewRating,
+          playerRating.rating,
+          opponentRating.rating,
+        ),
+        this.achievementsService.checkRatingAchievements(
+          opponentId,
+          timeControl,
+          opponentNewRating,
+          opponentRating.rating,
+          playerRating.rating,
+        ),
+      ]);
+    } catch (error) {
+      this.logger.error('Failed to check rating achievements:', error);
+    }
+
+    // Update leaderboard cache asynchronously (don't await to avoid blocking)
+    this.updateLeaderboardCache(userId, opponentId, timeControl).catch((error) => {
+      this.logger.error(`Failed to update leaderboard cache: ${error.message}`);
+    });
+  }
+
+  /**
+   * Update leaderboard cache after rating changes
+   * Lazy loads LeaderboardsService to avoid circular dependency
+   */
+  private async updateLeaderboardCache(
+    userId: string,
+    opponentId: string,
+    timeControl: TimeControl,
+  ): Promise<void> {
+    try {
+      // Lazy load LeaderboardsService to avoid circular dependency
+      if (!this.leaderboardsService) {
+        const { LeaderboardsService } = await import('../leaderboards/leaderboards.service');
+        const { LeaderboardsModule } = await import('../leaderboards/leaderboards.module');
+        // This is a workaround - in production, use proper dependency injection
+        this.logger.warn('Leaderboard cache update skipped - service not injected');
+        return;
+      }
+
+      await Promise.all([
+        this.leaderboardsService.updateLeaderboardCache(userId, timeControl),
+        this.leaderboardsService.updateLeaderboardCache(opponentId, timeControl),
+      ]);
+    } catch (error) {
+      this.logger.error(`Error updating leaderboard cache: ${error.message}`);
+    }
   }
 
   /**

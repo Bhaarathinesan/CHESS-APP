@@ -5,6 +5,8 @@ import { MatchmakingGateway } from '../gateways/matchmaking.gateway';
 import { PrismaModule } from '../prisma/prisma.module';
 import { RedisModule } from '../redis/redis.module';
 import { GamesModule } from '../games/games.module';
+import { BlocksModule } from '../blocks/blocks.module';
+import { AdminModule } from '../admin/admin.module';
 import { JwtModule } from '@nestjs/jwt';
 import { ConfigModule } from '@nestjs/config';
 
@@ -13,6 +15,8 @@ import { ConfigModule } from '@nestjs/config';
     PrismaModule,
     RedisModule,
     forwardRef(() => GamesModule),
+    BlocksModule,
+    AdminModule,
     JwtModule,
     ConfigModule,
   ],

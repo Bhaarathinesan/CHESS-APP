@@ -13,26 +13,26 @@ const prisma = new PrismaClient({ adapter });
 
 // Approved college domains list
 const APPROVED_COLLEGE_DOMAINS = [
-  'stanford.edu',
-  'mit.edu',
-  'harvard.edu',
-  'berkeley.edu',
-  'caltech.edu',
-  'princeton.edu',
-  'yale.edu',
-  'columbia.edu',
-  'uchicago.edu',
-  'upenn.edu',
-  'cornell.edu',
-  'duke.edu',
-  'northwestern.edu',
-  'jhu.edu',
-  'brown.edu',
-  'vanderbilt.edu',
-  'rice.edu',
-  'wustl.edu',
-  'georgetown.edu',
-  'emory.edu',
+  { domain: 'stanford.edu', collegeName: 'Stanford University' },
+  { domain: 'mit.edu', collegeName: 'Massachusetts Institute of Technology' },
+  { domain: 'harvard.edu', collegeName: 'Harvard University' },
+  { domain: 'berkeley.edu', collegeName: 'University of California, Berkeley' },
+  { domain: 'caltech.edu', collegeName: 'California Institute of Technology' },
+  { domain: 'princeton.edu', collegeName: 'Princeton University' },
+  { domain: 'yale.edu', collegeName: 'Yale University' },
+  { domain: 'columbia.edu', collegeName: 'Columbia University' },
+  { domain: 'uchicago.edu', collegeName: 'University of Chicago' },
+  { domain: 'upenn.edu', collegeName: 'University of Pennsylvania' },
+  { domain: 'cornell.edu', collegeName: 'Cornell University' },
+  { domain: 'duke.edu', collegeName: 'Duke University' },
+  { domain: 'northwestern.edu', collegeName: 'Northwestern University' },
+  { domain: 'jhu.edu', collegeName: 'Johns Hopkins University' },
+  { domain: 'brown.edu', collegeName: 'Brown University' },
+  { domain: 'vanderbilt.edu', collegeName: 'Vanderbilt University' },
+  { domain: 'rice.edu', collegeName: 'Rice University' },
+  { domain: 'wustl.edu', collegeName: 'Washington University in St. Louis' },
+  { domain: 'georgetown.edu', collegeName: 'Georgetown University' },
+  { domain: 'emory.edu', collegeName: 'Emory University' },
 ];
 
 async function hashPassword(password: string): Promise<string> {
@@ -58,6 +58,17 @@ async function main() {
   await prisma.report.deleteMany();
   await prisma.rating.deleteMany();
   await prisma.user.deleteMany();
+  await prisma.collegeDomain.deleteMany();
+
+  // Create approved college domains
+  console.log('🎓 Creating approved college domains...');
+  await prisma.collegeDomain.createMany({
+    data: APPROVED_COLLEGE_DOMAINS.map(({ domain, collegeName }) => ({
+      domain,
+      collegeName,
+      isActive: true,
+    })),
+  });
 
   // Create admin user
   console.log('👤 Creating admin user...');
@@ -370,12 +381,14 @@ async function main() {
   console.log('🏅 Creating achievements...');
   await prisma.achievement.createMany({
     data: [
+      // Gameplay Achievements
       {
         code: 'first_victory',
         name: 'First Victory',
         description: 'Win your first game',
         category: 'gameplay',
         points: 10,
+        isHidden: false,
       },
       {
         code: 'checkmate_master',
@@ -383,6 +396,7 @@ async function main() {
         description: 'Deliver checkmate in 100 games',
         category: 'gameplay',
         points: 100,
+        isHidden: false,
       },
       {
         code: 'speed_demon',
@@ -390,6 +404,7 @@ async function main() {
         description: 'Win a Bullet game',
         category: 'gameplay',
         points: 15,
+        isHidden: false,
       },
       {
         code: 'marathon_runner',
@@ -397,13 +412,48 @@ async function main() {
         description: 'Complete a game lasting over 100 moves',
         category: 'gameplay',
         points: 25,
+        isHidden: false,
       },
+      {
+        code: 'comeback_king',
+        name: 'Comeback King',
+        description: 'Win after being down material equivalent to a Queen',
+        category: 'gameplay',
+        points: 50,
+        isHidden: false,
+      },
+      {
+        code: 'scholars_mate',
+        name: "Scholar's Mate",
+        description: "Win by Scholar's Mate",
+        category: 'gameplay',
+        points: 20,
+        isHidden: false,
+      },
+      {
+        code: 'stalemate_artist',
+        name: 'Stalemate Artist',
+        description: 'Achieve stalemate',
+        category: 'gameplay',
+        points: 15,
+        isHidden: false,
+      },
+      // Tournament Achievements
       {
         code: 'tournament_debut',
         name: 'Tournament Debut',
         description: 'Participate in your first tournament',
         category: 'tournament',
         points: 20,
+        isHidden: false,
+      },
+      {
+        code: 'podium_finish',
+        name: 'Podium Finish',
+        description: 'Finish in top 3 of a tournament',
+        category: 'tournament',
+        points: 50,
+        isHidden: false,
       },
       {
         code: 'champion',
@@ -411,6 +461,32 @@ async function main() {
         description: 'Win a tournament',
         category: 'tournament',
         points: 100,
+        isHidden: false,
+      },
+      {
+        code: 'clean_sweep',
+        name: 'Clean Sweep',
+        description: 'Win a tournament without losing any games',
+        category: 'tournament',
+        points: 150,
+        isHidden: false,
+      },
+      {
+        code: 'iron_player',
+        name: 'Iron Player',
+        description: 'Complete 50 tournament games',
+        category: 'tournament',
+        points: 75,
+        isHidden: false,
+      },
+      // Rating Achievements
+      {
+        code: 'giant_killer',
+        name: 'Giant Killer',
+        description: 'Defeat an opponent rated 200+ points higher',
+        category: 'rating',
+        points: 40,
+        isHidden: false,
       },
       {
         code: 'rising_star',
@@ -418,6 +494,7 @@ async function main() {
         description: 'Reach 1400 rating',
         category: 'rating',
         points: 30,
+        isHidden: false,
       },
       {
         code: 'club_player',
@@ -425,6 +502,7 @@ async function main() {
         description: 'Reach 1600 rating',
         category: 'rating',
         points: 50,
+        isHidden: false,
       },
       {
         code: 'expert',
@@ -432,6 +510,7 @@ async function main() {
         description: 'Reach 1800 rating',
         category: 'rating',
         points: 75,
+        isHidden: false,
       },
       {
         code: 'master',
@@ -439,13 +518,24 @@ async function main() {
         description: 'Reach 2000 rating',
         category: 'rating',
         points: 100,
+        isHidden: false,
       },
+      {
+        code: 'grandmaster',
+        name: 'Grandmaster',
+        description: 'Reach 2200 rating',
+        category: 'rating',
+        points: 150,
+        isHidden: false,
+      },
+      // Social Achievements
       {
         code: 'social_butterfly',
         name: 'Social Butterfly',
         description: 'Follow 10 other players',
         category: 'social',
-        points: 15,
+        points: 20,
+        isHidden: false,
       },
     ],
   });
@@ -497,10 +587,12 @@ async function main() {
   console.log(`   - ${players.length} sample players (password: Player123!)`);
   console.log(`   - ${completedGames.length} completed games`);
   console.log(`   - 2 tournaments (1 open for registration, 1 completed)`);
-  console.log(`   - 11 achievements`);
+  console.log(`   - 19 achievements`);
   console.log(`   - ${APPROVED_COLLEGE_DOMAINS.length} approved college domains`);
   console.log('\n🎓 Approved college domains:');
-  APPROVED_COLLEGE_DOMAINS.forEach(domain => console.log(`   - ${domain}`));
+  APPROVED_COLLEGE_DOMAINS.forEach(({ domain, collegeName }) => 
+    console.log(`   - ${domain} (${collegeName})`)
+  );
 }
 
 main()
