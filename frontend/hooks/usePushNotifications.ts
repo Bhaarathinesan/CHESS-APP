@@ -1,22 +1,37 @@
 import { useState, useEffect, useCallback } from 'react';
 import { apiClient } from '@/lib/api-client';
 
+export interface PushNotificationState {
+  permission: NotificationPermission;
+  isSupported: boolean;
+  isSubscribed: boolean;
+  isLoading: boolean;
+  isPWA: boolean;
+}
+
 /**
  * Hook for managing browser push notifications
- * Requirements: 18.13
+ * Requirements: 18.13, 21.13
  */
 export function usePushNotifications() {
   const [permission, setPermission] = useState<NotificationPermission>('default');
   const [isSupported, setIsSupported] = useState(false);
   const [isSubscribed, setIsSubscribed] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
+  const [isPWA, setIsPWA] = useState(false);
 
   useEffect(() => {
     // Check if push notifications are supported
     const supported = 'Notification' in window && 'serviceWorker' in navigator && 'PushManager' in window;
     setIsSupported(supported);
 
-    if (supported) {
+    // Check if running as PWA
+    const isPWAMode = window.matchMedia('(display-mode: standalone)').matches ||
+                      (window.navigator as any).standalone === true ||
+                      document.referrer.includes('android-app://');
+    setIsPWA(isPWAMode);
+
+    if (supported && window.Notification) {
       setPermission(Notification.permission);
       checkSubscription();
     }
@@ -24,6 +39,7 @@ export function usePushNotifications() {
 
   /**
    * Check if user is already subscribed
+   * Requirements: 21.13
    */
   const checkSubscription = async () => {
     try {
@@ -37,6 +53,7 @@ export function usePushNotifications() {
 
   /**
    * Request notification permission
+   * Requirements: 21.13
    */
   const requestPermission = async (): Promise<boolean> => {
     if (!isSupported) {
@@ -56,6 +73,7 @@ export function usePushNotifications() {
 
   /**
    * Subscribe to push notifications
+   * Requirements: 21.13
    */
   const subscribe = async (): Promise<boolean> => {
     if (!isSupported) {
@@ -75,8 +93,11 @@ export function usePushNotifications() {
         }
       }
 
-      // Register service worker
-      const registration = await navigator.serviceWorker.register('/sw.js');
+      // Register service worker if not already registered
+      let registration = await navigator.serviceWorker.getRegistration('/');
+      if (!registration) {
+        registration = await navigator.serviceWorker.register('/sw.js');
+      }
       await navigator.serviceWorker.ready;
 
       // Get VAPID public key from server
@@ -106,6 +127,7 @@ export function usePushNotifications() {
 
   /**
    * Unsubscribe from push notifications
+   * Requirements: 21.13
    */
   const unsubscribe = async (): Promise<boolean> => {
     if (!isSupported) {
@@ -140,7 +162,8 @@ export function usePushNotifications() {
   };
 
   /**
-   * Test push notification
+   * Test push notification (local)
+   * Requirements: 21.13
    */
   const testNotification = () => {
     if (permission === 'granted') {
@@ -148,7 +171,27 @@ export function usePushNotifications() {
         body: 'Push notifications are working!',
         icon: '/icons/icon-192x192.png',
         badge: '/icons/badge-72x72.png',
+        vibrate: [200, 100, 200],
       });
+    }
+  };
+
+  /**
+   * Request test push from server
+   * Requirements: 21.13
+   */
+  const testServerPush = async (): Promise<boolean> => {
+    if (!isSubscribed) {
+      console.warn('Not subscribed to push notifications');
+      return false;
+    }
+
+    try {
+      await apiClient.post('/api/notifications/test-push');
+      return true;
+    } catch (error) {
+      console.error('Error testing server push:', error);
+      return false;
     }
   };
 
@@ -157,10 +200,12 @@ export function usePushNotifications() {
     permission,
     isSubscribed,
     isLoading,
+    isPWA,
     requestPermission,
     subscribe,
     unsubscribe,
     testNotification,
+    testServerPush,
   };
 }
 

@@ -115,4 +115,23 @@ export class NotificationsController {
     await this.pushNotificationService.unsubscribe(req.user.userId, body.endpoint);
     return { success: true };
   }
+
+  /**
+   * POST /api/notifications/test-push
+   * Send a test push notification
+   * Requirements: 21.13
+   */
+  @Post('test-push')
+  async testPush(@Request() req) {
+    await this.pushNotificationService.sendPushNotification(
+      req.user.userId,
+      'Test Notification',
+      'This is a test push notification from ChessArena!',
+      {
+        type: 'default',
+        linkUrl: '/dashboard',
+      },
+    );
+    return { success: true };
+  }
 }

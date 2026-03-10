@@ -4,6 +4,7 @@ import { ReactNode } from 'react';
 import Navbar from './Navbar';
 import Sidebar from './Sidebar';
 import MobileNav from './MobileNav';
+import { OfflineIndicator } from '@/components/pwa/OfflineIndicator';
 
 interface MainLayoutProps {
   children: ReactNode;
@@ -12,6 +13,9 @@ interface MainLayoutProps {
 export default function MainLayout({ children }: MainLayoutProps) {
   return (
     <div className="min-h-screen bg-background">
+      {/* Offline Indicator */}
+      <OfflineIndicator />
+
       {/* Top Navigation Bar */}
       <Navbar />
 

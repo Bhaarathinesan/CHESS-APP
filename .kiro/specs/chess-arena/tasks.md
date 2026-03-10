@@ -1442,32 +1442,32 @@ This implementation plan breaks down the ChessArena platform into small, actiona
     - _Requirements: 21.4_
 
 
-- [-] 46. Implement Progressive Web App (PWA)
+- [x] 46. Implement Progressive Web App (PWA)
   - [x] 46.1 Configure PWA manifest
     - Create manifest.json with app metadata
     - Add app icons for all sizes
     - Configure display mode and theme colors
     - _Requirements: 21.11_
   
-  - [ ] 46.2 Implement service worker
+  - [x] 46.2 Implement service worker
     - Create service worker for offline functionality
     - Cache static assets
     - Implement cache-first strategy for assets
     - _Requirements: 21.14_
   
-  - [ ] 46.3 Implement offline functionality
+  - [x] 46.3 Implement offline functionality
     - Allow viewing past games offline
     - Allow viewing profile offline
     - Display offline indicator
     - _Requirements: 21.12_
   
-  - [ ] 46.4 Implement PWA install prompt
+  - [x] 46.4 Implement PWA install prompt
     - Display install prompt on supported browsers
     - Handle install acceptance
     - Track installation
     - _Requirements: 21.15_
   
-  - [ ] 46.5 Implement PWA push notifications
+  - [x] 46.5 Implement PWA push notifications
     - Configure push notification service
     - Request notification permissions
     - Handle push notification display

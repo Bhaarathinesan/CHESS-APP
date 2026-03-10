@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import "./globals.css";
 import ThemeProvider from "@/components/ThemeProvider";
+import { PWAProvider } from "@/components/pwa/PWAProvider";
 
 export const metadata: Metadata = {
   title: "ChessArena",
@@ -59,7 +60,11 @@ export default function RootLayout({
         />
       </head>
       <body>
-        <ThemeProvider>{children}</ThemeProvider>
+        <ThemeProvider>
+          <PWAProvider>
+            {children}
+          </PWAProvider>
+        </ThemeProvider>
       </body>
     </html>
   );

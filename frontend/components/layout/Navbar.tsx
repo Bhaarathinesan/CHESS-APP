@@ -5,6 +5,7 @@ import { useState } from 'react';
 import { ChevronDown, Menu, X } from 'lucide-react';
 import ThemeToggle from '@/components/ui/ThemeToggle';
 import { useResponsive } from '@/hooks/useResponsive';
+import { InstallButton } from '@/components/pwa/InstallButton';
 
 export default function Navbar() {
   const [isUserMenuOpen, setIsUserMenuOpen] = useState(false);
@@ -52,6 +53,11 @@ export default function Navbar() {
 
         {/* Right side actions */}
         <div className="flex items-center gap-2">
+          {/* Install Button (Desktop only) */}
+          <div className="hidden lg:block">
+            <InstallButton variant="secondary" size="sm" />
+          </div>
+
           {/* Hamburger Menu Button (Mobile/Tablet) */}
           <button
             onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
